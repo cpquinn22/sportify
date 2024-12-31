@@ -12,7 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.example.sportify.ui.theme.SportifyTheme
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -70,7 +72,9 @@ class MainActivity : ComponentActivity() {
             Text(text = "Welcome, $userName!")
             Button(onClick = { navController.navigate("home") }) {
                 Text("Main Page")
+
             }
+            LogoutScreen()
         }
     }
 
@@ -82,4 +86,28 @@ class MainActivity : ComponentActivity() {
             HomeScreen(rememberNavController(), "Spotify")
         }
     }
+
+    @Composable
+    fun LogoutScreen() {
+        // Retrieve the context in a valid composable scope
+        val context = LocalContext.current
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+        ) {
+            Text(text = "You are signed in!")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = {
+                Firebase.auth.signOut()
+                context.startActivity(Intent(context, MainActivity::class.java))
+                (context as ComponentActivity).finish()
+            }) {
+                Text("Log Out")
+            }
+        }
+    }
+
+
 }
