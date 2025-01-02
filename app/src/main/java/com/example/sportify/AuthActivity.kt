@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.firebase.ui.auth.AuthUI
@@ -56,5 +57,20 @@ class AuthActivity : ComponentActivity() {
     private fun navigateToMain() {
         startActivity(Intent(this, MainActivity::class.java))
         finish()
+    }
+}
+
+@Composable
+fun AuthScreen() {
+    Surface(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "Authenticating...")
+        }
     }
 }

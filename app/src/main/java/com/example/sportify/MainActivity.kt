@@ -4,27 +4,60 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import com.example.sportify.ui.theme.SportifyTheme
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.firebase.ui.auth.AuthUI
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.layout.Arrangement
 
 
+// Data Model
+data class Sport(
+    val name: String,
+    val imageResId: Int // For now, use local drawable resource IDs
+)
+
+// ViewModel
+class SportsViewModel : ViewModel() {
+
+    private val _sports = MutableStateFlow<List<Sport>>(listOf())
+    val sports: StateFlow<List<Sport>> get() = _sports
+
+    init {
+        loadSports()
+    }
+
+    private fun loadSports() {
+        _sports.value = listOf(
+            Sport("Basketball", R.drawable.basketball),
+            Sport("Tennis", R.drawable.tennis),
+            Sport("Football", R.drawable.football)
+        )
+    }
+
+}
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +72,7 @@ class MainActivity : ComponentActivity() {
             // Set content if user is signed in
             setContent {
                 SportifyTheme {
-                     Surface(
+                    Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
@@ -57,10 +90,86 @@ class MainActivity : ComponentActivity() {
             navController = navController,
             startDestination = "home"
         ) {
-            composable("home") { HomeScreen(navController, userName) }
+            composable("home") { HomeScreen(navController, userName = "User") }
+            composable("sports") { SportsScreen(navController) }
+            composable("details/{sportName}")
+            { backStackEntry ->
+                val sportName =
+                    backStackEntry.arguments?.getString("sportName")
+                        ?: "Unknown Sport"
+                DrillScreen(navController, sportName)
+            }
         }
     }
 
+    @Composable
+    fun SportsScreen(navController: NavHostController, viewModel: SportsViewModel = viewModel()) {
+        val sports by viewModel.sports.collectAsState()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            sports.forEach { sport ->
+                SportCard(sport) {
+                    navController.navigate("details/${sport.name}")
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { navController.navigate("home") }) {
+                Text("Back to Home Screen")
+            }
+        }
+    }
+
+    @Composable
+    fun SportCard(sport: Sport, onClick: () -> Unit) {
+        androidx.compose.material3.Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                .clickable { onClick() },
+            elevation = androidx.compose.material3.CardDefaults.cardElevation(4.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = sport.imageResId),
+                    contentDescription = sport.name,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(text = sport.name, style = MaterialTheme.typography.titleLarge)
+                }
+            }
+        }
+    }
+
+
+    @Composable
+    fun SportDetailsScreen(sportName: String) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = sportName, style = MaterialTheme.typography.titleLarge)
+            ////////////// Add more details here /////////////////////////
+        }
+    }
 
     @Composable
     fun HomeScreen(navController: NavHostController, userName: String) {
@@ -69,15 +178,14 @@ class MainActivity : ComponentActivity() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = "Welcome, $userName!")
-            Button(onClick = { navController.navigate("home") }) {
-                Text("Main Page")
-
+            Text(text = "Welcome to Sportify, $userName!")
+            Button(onClick = { navController.navigate("sports") }) {
+                Text("Go to Sports")
             }
+            Spacer(modifier = Modifier.height(16.dp))
             LogoutScreen()
         }
     }
-
 
     @Preview(showBackground = true)
     @Composable
@@ -109,5 +217,27 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun DrillScreen(navController: NavHostController, sportName: String) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "$sportName Drills", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // Example drill cards
+            listOf("Shooting", "Weight Training", "Fitness").forEach { drill ->
+                Button(
+                    onClick = { /* Handle drill click */ },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(drill)
+                }
+            }
+        }
+    }
 }
