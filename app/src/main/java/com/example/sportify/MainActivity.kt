@@ -97,8 +97,12 @@ class MainActivity : ComponentActivity() {
                 val sportName =
                     backStackEntry.arguments?.getString("sportName")
                         ?: "Unknown Sport"
-                DrillScreen(navController, sportName)
+                DrillActivity(navController, sportName)
             }
+            composable("drill/shooting") { ShootingDrillScreen(navController) }
+            composable("drill/3_point_shooting") { ThreePointShootingScreen(navController) }
+            composable("drill/free_throw") { FreeThrowScreen(navController) }
+            composable("drill/off_the_dribble_shots") { OffTheDribbleScreen(navController) }
         }
     }
 
@@ -191,7 +195,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun GreetingPreview() {
         SportifyTheme {
-            HomeScreen(rememberNavController(), "Spotify")
+            HomeScreen(rememberNavController(), "Sportify")
         }
     }
 
@@ -217,27 +221,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    fun DrillScreen(navController: NavHostController, sportName: String) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = "$sportName Drills", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Example drill cards
-            listOf("Shooting", "Weight Training", "Fitness").forEach { drill ->
-                Button(
-                    onClick = { /* Handle drill click */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(drill)
-                }
-            }
-        }
-    }
 }
