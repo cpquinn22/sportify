@@ -1,5 +1,6 @@
 package com.example.sportify
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -7,20 +8,82 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import data.Drill
+import data.DrillsRepository
+import kotlinx.coroutines.launch
+
 
 @Composable
-fun DrillActivity(navController: NavHostController, sportName: String) {
-    when (sportName) {
-        "Basketball" -> BasketballDrillScreen(navController)
-        "Tennis" -> ComingSoonScreen(navController, sportName)
-        "Football" -> ComingSoonScreen(navController, sportName)
-        else -> DefaultDrillScreen(navController, sportName)
+fun DrillActivity(navController: NavHostController, sportName: String, drillsRepository: DrillsRepository = DrillsRepository()) {
+    val drills = remember { mutableStateOf<Map<String, Drill>>(emptyMap()) }
+    val scope = rememberCoroutineScope()
+
+    // Fetch drills when activity loads
+    LaunchedEffect(sportName) {
+        scope.launch {
+            drills.value = drillsRepository.getDrillsBySport(sportName)
+        }
+    }
+
+    if (drills.value.isEmpty()) {
+        ComingSoonScreen(navController, sportName)
+    } else {
+        DrillsListScreen(drills = drills.value, navController = navController)
+    }
+}
+
+@Composable
+fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostController) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        drills.forEach { (key, drill) ->
+            Button(
+                onClick = {
+                    Log.d("DrillActivity", "Navigating to drillDetails/$key")
+                    navController.navigate("drillDetails/$key") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(drill.name)
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { navController.navigate("sports") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Back to Sports")
+        }
+    }
+}
+
+@Composable
+fun DrillDetailsScreen(drill: Drill) {
+    if (drill == null) {
+        Text("Drill details are not available.")
+        return
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(drill.name, style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(16.dp))
+        drill.steps.forEach { (stepKey, stepValue) ->
+            Text("$stepKey: $stepValue", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+        }
     }
 }
 
