@@ -2,6 +2,7 @@ package com.example.sportify
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -31,6 +32,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import com.google.firebase.FirebaseApp
+import data.Drill
+import data.DrillsRepository
 
 
 // Data Model
@@ -61,6 +68,7 @@ class SportsViewModel : ViewModel() {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FirebaseApp.initializeApp(this)
 
         // Check authentication state
         val user = Firebase.auth.currentUser
@@ -97,13 +105,35 @@ class MainActivity : ComponentActivity() {
                 val sportName =
                     backStackEntry.arguments?.getString("sportName")
                         ?: "Unknown Sport"
-                DrillActivity(navController, sportName)
+                DrillActivity(navController, sportName, DrillsRepository())
             }
-            composable("drill/shooting") { ShootingDrillScreen(navController) }
-            composable("drill/3_point_shooting") { ThreePointShootingScreen(navController) }
-            composable("drill/free_throw") { FreeThrowScreen(navController) }
-            composable("drill/off_the_dribble_shots") { OffTheDribbleScreen(navController) }
-        }
+            composable("drillDetails/{drillKey}") { backStackEntry ->
+                val drillKey = backStackEntry.arguments?.getString("drillKey")
+                val drillsRepository = DrillsRepository()
+                val drillState = remember { mutableStateOf<Drill?>(null) }
+
+                LaunchedEffect(drillKey){
+                    if(drillKey != null) {
+                        try{
+                            val drills = drillsRepository.getDrillsBySport("Basketball")
+                            drillState.value = drills[drillKey]
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            Log.e("DrillDetails", "Error fetching drill", e)
+                        }
+                    } else {
+                        Log.e("DrillDetails", "drillKey is null")
+                    }
+                }
+
+                if (drillState.value != null) {
+                    DrillDetailsScreen(drillState.value!!)
+                } else {
+                    Log.d("DrillDetails", "Drill is still loading or null")
+                    Text("Loading drill details...")
+                }
+            }
+             }
     }
 
     @Composable
