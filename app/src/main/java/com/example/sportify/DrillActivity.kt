@@ -5,13 +5,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -67,11 +70,11 @@ fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostControlle
 }
 
 @Composable
-fun DrillDetailsScreen(drill: Drill) {
-    if (drill == null) {
-        Text("Drill details are not available.")
-        return
-    }
+fun DrillDetailsScreen(navController: NavHostController, drill: Drill) {
+    var shotsMade by remember {mutableStateOf("") }
+    val totalShots = 15
+    val percentage = calculatePercentage(shotsMade, totalShots)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -79,12 +82,59 @@ fun DrillDetailsScreen(drill: Drill) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(drill.name, style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+        //Title
+        Text(
+        text = drill.name,
+        style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+
+        //Description
         Spacer(modifier = Modifier.height(16.dp))
         drill.steps.forEach { (stepKey, stepValue) ->
-            Text("$stepKey: $stepValue", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+            Text(
+                text = stepValue ,
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Input field for shots made
+        TextField(
+            value = shotsMade,
+            onValueChange = { input ->
+                shotsMade = input.filter { it.isDigit() } // Allow only number input
+            },
+            label = { Text("Enter shots made") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Display shooting percentage
+        Text(
+            text = "Shooting Percentage: $percentage%",
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Back button
+        Button(
+            onClick = {
+                navController.popBackStack()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ){
+            Text("Back to Shooting Drills")
         }
     }
+}
+
+fun calculatePercentage(shots: String, totalShots: Int): Int {
+    return shots.toIntOrNull()?.let { nonNullShots ->
+        ((nonNullShots.toDouble() / totalShots) * 100).toInt()
+    } ?: 0
 }
 
 @Composable
@@ -272,11 +322,6 @@ fun FreeThrowScreen(navController: NavHostController) {
     }
 }
 
-fun calculatePercentage(shots: String, totalShots: Int): Int {
-    return shots.toIntOrNull()?.let {
-        ((it.toDouble() / totalShots) * 100).toInt()
-    } ?: 0
-}
 
 @Composable
 fun ComingSoonScreen(navController: NavHostController, sportName: String) {
