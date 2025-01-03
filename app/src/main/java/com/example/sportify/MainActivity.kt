@@ -127,7 +127,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (drillState.value != null) {
-                    DrillDetailsScreen(drillState.value!!)
+                    DrillDetailsScreen(navController = navController, drill = drillState.value!!)
                 } else {
                     Log.d("DrillDetails", "Drill is still loading or null")
                     Text("Loading drill details...")
