@@ -72,20 +72,21 @@ fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostControlle
 }
 
 @Composable
-fun DrillDetailsScreen(navController: NavHostController, drill: Drill, sportName: String) {
+fun DrillDetailsScreen(navController: NavHostController,
+                       drill: Drill,
+                       sportName: String,
+                       drillsRepository: DrillsRepository) {
     val repository = DrillsRepository()
     var shotsMade by remember { mutableStateOf("") }
     val totalShots = 15
     val percentage = calculatePercentage(shotsMade, totalShots)
     val logs = remember { mutableStateListOf<Map<String, Any>>() }
+    val drillName = drill.name
 
     // Fetch logs from Firestore
-    LaunchedEffect(Unit) {
-        val drillLogsCollection = repository.drillsCollection.document(sportName).collection("logs")
-        drillLogsCollection.get().addOnSuccessListener { result ->
-            logs.clear()
-            logs.addAll(result.documents.mapNotNull { it.data })
-        }
+    LaunchedEffect(drillName) {
+        val fetchedLogs = repository.getLogsByDrill(sportName, drillName)
+        logs.addAll(fetchedLogs)
     }
 
     Column(
@@ -117,24 +118,16 @@ fun DrillDetailsScreen(navController: NavHostController, drill: Drill, sportName
         Button(
             onClick = {
                 if (shotsMade.isNotEmpty()) {
-                    //Save log to Firestore
-                    val firestore = FirebaseFirestore.getInstance()
-                        val log = mapOf(
-                            "shotsMade" to shotsMade.toInt(),
-                            "shootingPercentage" to percentage,
-                            "timestamp" to System.currentTimeMillis()
-                        )
-                        firestore.collection("logs").add(log)
-                            .addOnSuccessListener {
-                                logs.add(log)
-                            }
-                            .addOnFailureListener { e -> e.printStackTrace()}
+                    val shots = shotsMade.toIntOrNull() ?: 0
+                    drillsRepository.addLogToFirestore(sportName, drillName, shots, percentage)
+                    logs.add(mapOf("shotsMade" to shots, "shootingPercentage" to percentage))
                 }
             },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Log")
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ){
+            Text(text = "Log")
         }
+
 
         Spacer(modifier = Modifier.height(24.dp))
         Text("Logs", style = MaterialTheme.typography.titleMedium)

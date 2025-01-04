@@ -130,7 +130,9 @@ class MainActivity : ComponentActivity() {
                 if (drillState.value != null) {
                     DrillDetailsScreen(navController = navController,
                         drill = drillState.value!!,
-                        sportName = sportName)
+                        sportName = sportName,
+                        drillsRepository = DrillsRepository()
+                    )
                 } else {
                     Log.d("DrillDetails", "Drill is still loading or null")
                     Text("Loading drill details...")
