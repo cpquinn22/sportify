@@ -108,6 +108,7 @@ class MainActivity : ComponentActivity() {
                 DrillActivity(navController, sportName, DrillsRepository())
             }
             composable("drillDetails/{drillKey}") { backStackEntry ->
+                val sportName = backStackEntry.arguments?.getString("sportName") ?: "Unknown Sport"
                 val drillKey = backStackEntry.arguments?.getString("drillKey")
                 val drillsRepository = DrillsRepository()
                 val drillState = remember { mutableStateOf<Drill?>(null) }
@@ -127,7 +128,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (drillState.value != null) {
-                    DrillDetailsScreen(navController = navController, drill = drillState.value!!)
+                    DrillDetailsScreen(navController = navController,
+                        drill = drillState.value!!,
+                        sportName = sportName)
                 } else {
                     Log.d("DrillDetails", "Drill is still loading or null")
                     Text("Loading drill details...")

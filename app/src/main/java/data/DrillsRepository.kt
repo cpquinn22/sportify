@@ -11,7 +11,7 @@ data class Drill(
 
 class DrillsRepository {
     private val firestore = FirebaseFirestore.getInstance()
-    private val drillsCollection = firestore.collection("drills")
+    val drillsCollection = firestore.collection("drills")
 
     // Fetch drills for a given sport
     suspend fun getDrillsBySport(sportName: String): Map<String, Drill> {
@@ -28,6 +28,21 @@ class DrillsRepository {
             } ?: emptyMap()
         } catch (e: Exception) {
             emptyMap()
+        }
+    }
+
+    fun addLogToFirestore(sportName: String, drillName: String, shotsMade: Int, shootingPercentage: Int) {
+        val log = hashMapOf(
+            "shotsMade" to shotsMade,
+            "shootingPercentage" to shootingPercentage,
+            "timestamp" to System.currentTimeMillis()
+        )
+        val drillLogsCollection = drillsCollection.document(sportName).collection("logs")
+
+        drillLogsCollection.add(log).addOnSuccessListener {
+            Log.d("Firestore", "Log added successfully")
+        }.addOnFailureListener { e ->
+            Log.e("Firestore", "Error adding log", e)
         }
     }
 }
