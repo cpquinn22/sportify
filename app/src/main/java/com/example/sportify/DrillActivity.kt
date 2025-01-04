@@ -11,6 +11,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.google.firebase.firestore.FirebaseFirestore
 import data.Drill
 import data.DrillsRepository
 import kotlinx.coroutines.launch
@@ -70,10 +72,21 @@ fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostControlle
 }
 
 @Composable
-fun DrillDetailsScreen(navController: NavHostController, drill: Drill) {
-    var shotsMade by remember {mutableStateOf("") }
+fun DrillDetailsScreen(navController: NavHostController, drill: Drill, sportName: String) {
+    val repository = DrillsRepository()
+    var shotsMade by remember { mutableStateOf("") }
     val totalShots = 15
     val percentage = calculatePercentage(shotsMade, totalShots)
+    val logs = remember { mutableStateListOf<Map<String, Any>>() }
+
+    // Fetch logs from Firestore
+    LaunchedEffect(Unit) {
+        val drillLogsCollection = repository.drillsCollection.document(sportName).collection("logs")
+        drillLogsCollection.get().addOnSuccessListener { result ->
+            logs.clear()
+            logs.addAll(result.documents.mapNotNull { it.data })
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -82,51 +95,61 @@ fun DrillDetailsScreen(navController: NavHostController, drill: Drill) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        //Title
-        Text(
-        text = drill.name,
-        style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-
-        //Description
-        Spacer(modifier = Modifier.height(16.dp))
-        drill.steps.forEach { (stepKey, stepValue) ->
-            Text(
-                text = stepValue ,
-                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+        Text(drill.name, style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        drill.steps.forEach { (_, stepValue) ->
+            Text(stepValue, style = MaterialTheme.typography.bodyLarge)
         }
-
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Input field for shots made
+        // Input field
         TextField(
             value = shotsMade,
-            onValueChange = { input ->
-                shotsMade = input.filter { it.isDigit() } // Allow only number input
-            },
+            onValueChange = { input -> shotsMade = input.filter { it.isDigit() } },
             label = { Text("Enter shots made") },
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
+        Text("Shooting Percentage: $percentage%", style = MaterialTheme.typography.bodyLarge)
 
-        // Display shooting percentage
-        Text(
-            text = "Shooting Percentage: $percentage%",
-            style = MaterialTheme.typography.bodyLarge
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Back button
+        Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
-                navController.popBackStack()
+                if (shotsMade.isNotEmpty()) {
+                    //Save log to Firestore
+                    val firestore = FirebaseFirestore.getInstance()
+                        val log = mapOf(
+                            "shotsMade" to shotsMade.toInt(),
+                            "shootingPercentage" to percentage,
+                            "timestamp" to System.currentTimeMillis()
+                        )
+                        firestore.collection("logs").add(log)
+                            .addOnSuccessListener {
+                                logs.add(log)
+                            }
+                            .addOnFailureListener { e -> e.printStackTrace()}
+                }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ){
-            Text("Back to Shooting Drills")
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Log")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Logs", style = MaterialTheme.typography.titleMedium)
+
+        if (logs.isEmpty()) {
+            Text("No logs available", style = MaterialTheme.typography.bodyLarge)
+        } else {
+            logs.forEachIndexed { index, log ->
+                val shots = log["shotsMade"] as? Long ?: 0
+                val percentage = log["shootingPercentage"] as? Long ?: 0
+                Text(
+                    "Log ${index + 1}: Shots Made - $shots, Percentage - $percentage%",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
         }
     }
 }
@@ -217,9 +240,10 @@ fun ThreePointShootingScreen(navController: NavHostController) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            var shotsMade by remember {mutableStateOf("")}
             TextField(
-                value = shotsMade.value,
-                onValueChange = { shotsMade.value = it },
+                value = shotsMade,
+                onValueChange = { shotsMade = it },
                 label = { Text("Enter shots made") },
                 modifier = Modifier.weight(1f)
             )
