@@ -23,7 +23,9 @@ class DrillsRepository {
                 val drillData = entry.value as Map<*, *>
                 Drill(
                     name = drillData["name"] as String,
-                    steps = drillData.filterKeys { it.toString().startsWith("step_") } as Map<String, String>
+                    steps = drillData.filterKeys {
+                        it.toString().startsWith("step_")
+                    } as Map<String, String>
                 )
             } ?: emptyMap()
         } catch (e: Exception) {
@@ -31,18 +33,33 @@ class DrillsRepository {
         }
     }
 
-    fun addLogToFirestore(sportName: String, drillName: String, shotsMade: Int, shootingPercentage: Int) {
+    fun addLogToFirestore(
+        sportName: String,
+        drillName: String,
+        shotsMade: Int,
+        shootingPercentage: Int
+    ) {
         val log = hashMapOf(
             "shotsMade" to shotsMade,
             "shootingPercentage" to shootingPercentage,
             "timestamp" to System.currentTimeMillis()
         )
-        val drillLogsCollection = drillsCollection.document(sportName).collection("logs")
+        val drillLogsCollection = drillsCollection.document(sportName).collection("logs_$drillName")
 
         drillLogsCollection.add(log).addOnSuccessListener {
             Log.d("Firestore", "Log added successfully")
         }.addOnFailureListener { e ->
             Log.e("Firestore", "Error adding log", e)
+        }
+    }
+
+    suspend fun getLogsByDrill(sportName: String, drillName: String): List<Map<String, Any>> {
+        return try {
+            val snapshot =
+                drillsCollection.document(sportName).collection("logs_$drillName").get().await()
+            snapshot.documents.map { it.data ?: emptyMap() }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 }
