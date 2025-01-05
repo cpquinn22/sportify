@@ -91,54 +91,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Preview(showBackground = true)
     @Composable
-    fun MyApp(userName: String) {
-        val navController = rememberNavController();
-        NavHost(
-            navController = navController,
-            startDestination = "home"
+    fun GreetingPreview() {
+        SportifyTheme {
+            HomeScreen(rememberNavController(), "Sportify")
+        }
+    }
+
+    @Composable
+    fun HomeScreen(navController: NavHostController, userName: String) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            composable("home") { HomeScreen(navController, userName = "User") }
-            composable("sports") { SportsScreen(navController) }
-            composable("details/{sportName}")
-            { backStackEntry ->
-                val sportName =
-                    backStackEntry.arguments?.getString("sportName")
-                        ?: "Unknown Sport"
-                DrillActivity(navController, sportName, DrillsRepository())
+            Text(text = "Welcome to Sportify, $userName!")
+            Button(onClick = { navController.navigate("sports") }) {
+                Text("Go to Sports")
             }
-            composable("drillDetails/{drillKey}") { backStackEntry ->
-                val sportName = backStackEntry.arguments?.getString("sportName") ?: "Unknown Sport"
-                val drillKey = backStackEntry.arguments?.getString("drillKey")
-                val drillsRepository = DrillsRepository()
-                val drillState = remember { mutableStateOf<Drill?>(null) }
-
-                LaunchedEffect(drillKey){
-                    if(drillKey != null) {
-                        try{
-                            val drills = drillsRepository.getDrillsBySport("Basketball")
-                            drillState.value = drills[drillKey]
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            Log.e("DrillDetails", "Error fetching drill", e)
-                        }
-                    } else {
-                        Log.e("DrillDetails", "drillKey is null")
-                    }
-                }
-
-                if (drillState.value != null) {
-                    DrillDetailsScreen(navController = navController,
-                        drill = drillState.value!!,
-                        sportName = "Basketball",
-                        drillsRepository = DrillsRepository()
-                    )
-                } else {
-                    Log.d("DrillDetails", "Drill is still loading or null")
-                    Text("Loading drill details...")
-                }
-            }
-             }
+            Spacer(modifier = Modifier.height(16.dp))
+            LogoutScreen()
+        }
     }
 
     @Composable
@@ -154,7 +128,9 @@ class MainActivity : ComponentActivity() {
         ) {
             sports.forEach { sport ->
                 SportCard(sport) {
-                    navController.navigate("details/${sport.name}")
+                    navController.navigate("details/${sport.name}"){
+                        Log.d("Navigation", "Navigating to details/${sport.name}")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -195,45 +171,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-    @Composable
-    fun SportDetailsScreen(sportName: String) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = sportName, style = MaterialTheme.typography.titleLarge)
-            ////////////// Add more details here /////////////////////////
-        }
-    }
-
-    @Composable
-    fun HomeScreen(navController: NavHostController, userName: String) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = "Welcome to Sportify, $userName!")
-            Button(onClick = { navController.navigate("sports") }) {
-                Text("Go to Sports")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            LogoutScreen()
-        }
-    }
-
-    @Preview(showBackground = true)
-    @Composable
-    fun GreetingPreview() {
-        SportifyTheme {
-            HomeScreen(rememberNavController(), "Sportify")
-        }
-    }
-
     @Composable
     fun LogoutScreen() {
         // Retrieve the context in a valid composable scope
@@ -252,6 +189,65 @@ class MainActivity : ComponentActivity() {
                 (context as ComponentActivity).finish()
             }) {
                 Text("Log Out")
+            }
+        }
+    }
+
+    @Composable
+    fun MyApp(userName: String) {
+        val navController = rememberNavController();
+        NavHost(
+            navController = navController,
+            startDestination = "home"
+        ) {
+            composable("home") { HomeScreen(navController, userName) }
+            composable("sports") { SportsScreen(navController) }
+            composable("details/{sportName}") { backStackEntry ->
+                val sportName = backStackEntry.arguments?.getString("sportName") ?: "Unknown"
+                DrillActivity(navController, sportName, DrillsRepository())
+            }
+            composable("basketballDrills") { BasketballDrillScreen(navController) }
+            composable("shootingDrills") { ShootingDrillScreen(navController) }
+            composable("drillDetails/{drillKey}")
+            { backStackEntry ->
+                val drillKey = backStackEntry.arguments?.getString("drillKey") ?: "Unknown"
+                val drillsRepository = DrillsRepository()
+                val drillState = remember { mutableStateOf<Drill?>(null) }
+
+                LaunchedEffect(drillKey) {
+                    if (drillKey != "Unknown") {
+                        val drills = drillsRepository.getDrillsBySport("Basketball")
+                        drillState.value = drills[drillKey]
+                    }
+                }
+                drillState.value?.let { drill ->
+                    DrillDetailsScreen(
+                        navController = navController,
+                        drillKey = drillKey,
+                        drill = drill,
+                        drillsRepository = drillsRepository,
+                        sportName = "Basketball"
+                    )
+                }
+            }
+        }
+
+
+
+
+
+
+        @Composable
+        fun SportDetailsScreen(sportName: String) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = sportName, style = MaterialTheme.typography.titleLarge)
+                ////////////// Add more details here /////////////////////////
             }
         }
     }
