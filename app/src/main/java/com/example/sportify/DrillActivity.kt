@@ -73,9 +73,11 @@ fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostControlle
 
 @Composable
 fun DrillDetailsScreen(navController: NavHostController,
+                       drillKey: String,
                        drill: Drill,
                        sportName: String,
-                       drillsRepository: DrillsRepository) {
+                       drillsRepository: DrillsRepository
+) {
     val repository = DrillsRepository()
     var shotsMade by remember { mutableStateOf("") }
     val totalShots = 15
