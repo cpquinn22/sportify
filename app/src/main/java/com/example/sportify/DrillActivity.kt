@@ -138,8 +138,10 @@ fun DrillDetailsScreen(navController: NavHostController,
             logs.forEachIndexed { index, log ->
                 val shots = log["shotsMade"] as? Long ?: 0
                 val percentage = log["shootingPercentage"] as? Long ?: 0
+                val timestamp = log["timestamp"]
+                val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
                 Text(
-                    "Log ${index + 1}: Shots Made - $shots, Percentage - $percentage%",
+                    text = "Log ${index + 1}: Shots Made - $shots, Percentage - $percentage%, Date - $formattedDate",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
