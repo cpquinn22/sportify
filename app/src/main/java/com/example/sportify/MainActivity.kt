@@ -130,7 +130,7 @@ class MainActivity : ComponentActivity() {
                 if (drillState.value != null) {
                     DrillDetailsScreen(navController = navController,
                         drill = drillState.value!!,
-                        sportName = sportName,
+                        sportName = "Basketball",
                         drillsRepository = DrillsRepository()
                     )
                 } else {

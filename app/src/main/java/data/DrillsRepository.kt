@@ -1,8 +1,12 @@
 package data
 
 import android.util.Log
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.type.Date
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 data class Drill(
     val name: String = "",
@@ -42,14 +46,14 @@ class DrillsRepository {
         val log = hashMapOf(
             "shotsMade" to shotsMade,
             "shootingPercentage" to shootingPercentage,
-            "timestamp" to System.currentTimeMillis()
+            "timestamp" to Timestamp.now()
         )
         val drillLogsCollection = drillsCollection.document(sportName).collection("logs_$drillName")
 
         drillLogsCollection.add(log).addOnSuccessListener {
-            Log.d("Firestore", "Log added successfully")
+            Log.d("Firestore", "Log added successfully for $sportName")
         }.addOnFailureListener { e ->
-            Log.e("Firestore", "Error adding log", e)
+            Log.e("Firestore", "Error adding log $sportName", e)
         }
     }
 
@@ -61,5 +65,21 @@ class DrillsRepository {
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    fun formatTimestampToDateString(timestamp: Any?): String {
+        return if (timestamp is Timestamp) {
+            val date = timestamp.toDate()
+            val format = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
+            format.format(date)
+        } else if (timestamp is Long) {
+            val date = java.util.Date(timestamp)
+            val format = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
+            format.format(date)
+        } else {
+            "Unknown Date"
+        }
+
+
     }
 }
