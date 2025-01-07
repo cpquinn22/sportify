@@ -24,10 +24,15 @@ import com.google.firebase.firestore.FirebaseFirestore
 import data.Drill
 import data.DrillsRepository
 import kotlinx.coroutines.launch
+import java.security.Timestamp
 
 
 @Composable
-fun DrillActivity(navController: NavHostController, sportName: String, drillsRepository: DrillsRepository = DrillsRepository()) {
+fun DrillActivity(
+    navController: NavHostController,
+    sportName: String,
+    drillsRepository: DrillsRepository = DrillsRepository()
+) {
     val drills = remember { mutableStateOf<Map<String, Drill>>(emptyMap()) }
     val scope = rememberCoroutineScope()
 
@@ -58,7 +63,8 @@ fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostControlle
             Button(
                 onClick = {
                     Log.d("DrillActivity", "Navigating to drillDetails/$key")
-                    navController.navigate("drillDetails/$key") },
+                    navController.navigate("drillDetails/$key")
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(drill.name)
@@ -72,11 +78,12 @@ fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostControlle
 }
 
 @Composable
-fun DrillDetailsScreen(navController: NavHostController,
-                       drillKey: String,
-                       drill: Drill,
-                       sportName: String,
-                       drillsRepository: DrillsRepository
+fun DrillDetailsScreen(
+    navController: NavHostController,
+    drillKey: String,
+    drill: Drill,
+    sportName: String,
+    drillsRepository: DrillsRepository
 ) {
     val repository = DrillsRepository()
     var shotsMade by remember { mutableStateOf("") }
@@ -84,17 +91,28 @@ fun DrillDetailsScreen(navController: NavHostController,
     val percentage = calculatePercentage(shotsMade, totalShots)
     val logs = remember { mutableStateListOf<Map<String, Any>>() }
     val drillName = drill.name
+    val scrollState = rememberScrollState()
 
-    // Fetch logs from Firestore
-    LaunchedEffect(drillName) {
+    // Fetch logs from Firestores
+    suspend fun fetchLogs() {
         val fetchedLogs = repository.getLogsByDrill(sportName, drillName)
-        logs.addAll(fetchedLogs)
+        logs.clear()
+        logs.addAll(
+            fetchedLogs.sortedByDescending {
+                (it["timestamp"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: 0L
+            }
+        )
+    }
+
+    LaunchedEffect(drillName) {
+        fetchLogs()
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -117,21 +135,30 @@ fun DrillDetailsScreen(navController: NavHostController,
         Text("Shooting Percentage: $percentage%", style = MaterialTheme.typography.bodyLarge)
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        val scope = rememberCoroutineScope()
+
         Button(
             onClick = {
                 if (shotsMade.isNotEmpty()) {
                     val shots = shotsMade.toIntOrNull() ?: 0
                     drillsRepository.addLogToFirestore(sportName, drillName, shots, percentage)
-                    logs.add(mapOf("shotsMade" to shots, "shootingPercentage" to percentage))
+
+                    scope.launch {
+                        fetchLogs()
+                    }
                 }
             },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-        ){
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
             Text(text = "Log")
         }
 
 
         Spacer(modifier = Modifier.height(24.dp))
+
         Text("Logs", style = MaterialTheme.typography.titleMedium)
 
         if (logs.isEmpty()) {
@@ -166,8 +193,14 @@ fun BasketballDrillScreen(navController: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Basketball Drills", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-        Button(onClick = { navController.navigate("drill/shooting") }, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            "Basketball Drills",
+            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+        )
+        Button(
+            onClick = { navController.navigate("drill/shooting") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Shooting")
         }
         Button(onClick = { /* Handle Weight Training */ }, modifier = Modifier.fillMaxWidth()) {
@@ -193,22 +226,33 @@ fun ShootingDrillScreen(navController: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Button(onClick = { navController.navigate("drill/3_point_shooting") }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { navController.navigate("drill/3_point_shooting") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("3 Point Shooting")
         }
-        Button(onClick = { navController.navigate("drill/free_throw") }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { navController.navigate("drill/free_throw") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Free Throws")
         }
-        Button(onClick = { navController.navigate("drill/off_the_dribble_shots") }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { navController.navigate("drill/off_the_dribble_shots") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Off the Dribble Shots")
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("details/Basketball") }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { navController.navigate("details/Basketball") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Back to Basketball Drills")
         }
     }
 }
-
 
 
 @Composable
@@ -227,7 +271,10 @@ fun ThreePointShootingScreen(navController: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("3 Point Shooting", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+        Text(
+            "3 Point Shooting",
+            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text("Set yourself up on a spot at the 3 point line.")
         Text("Take 15 shots at this spot and record how many you make.")
@@ -237,7 +284,7 @@ fun ThreePointShootingScreen(navController: NavHostController) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            var shotsMade by remember {mutableStateOf("")}
+            var shotsMade by remember { mutableStateOf("") }
             TextField(
                 value = shotsMade,
                 onValueChange = { shotsMade = it },
@@ -247,16 +294,22 @@ fun ThreePointShootingScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.width(8.dp))
             Text("/15", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
         }
-        Text("Shooting Percentage: $shootingPercentage%", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+        Text(
+            "Shooting Percentage: $shootingPercentage%",
+            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+        )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("drill/shooting") }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { navController.navigate("drill/shooting") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Back to Shooting Drills")
         }
     }
 }
 
 @Composable
-fun OffTheDribbleScreen (navController: NavHostController) {
+fun OffTheDribbleScreen(navController: NavHostController) {
     val offDribbleShots = remember {
         mutableStateOf("")
     }
@@ -317,7 +370,10 @@ fun FreeThrowScreen(navController: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Free Throw Shooting", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+        Text(
+            "Free Throw Shooting",
+            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text("Stand at the free throw line and take 15 shots. Record how many you make.")
         Spacer(modifier = Modifier.height(16.dp))
@@ -335,9 +391,15 @@ fun FreeThrowScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.width(8.dp))
             Text("/15", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
         }
-        Text("Shooting Percentage: $shootingPercentage%", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+        Text(
+            "Shooting Percentage: $shootingPercentage%",
+            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+        )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("drill/shooting") }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { navController.navigate("drill/shooting") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Back to Shooting Drills")
         }
     }
@@ -353,7 +415,10 @@ fun ComingSoonScreen(navController: NavHostController, sportName: String) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("$sportName features are coming soon!", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+        Text(
+            "$sportName features are coming soon!",
+            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+        )
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = { navController.navigate("sports") }) {
             Text("Back to Sports")
@@ -378,7 +443,7 @@ fun DefaultDrillScreen(navController: NavHostController, sportName: String) {
 
             @Composable
             fun TennisDrillScreen(navController: NavHostController) {
-            // Implement Tennis drill screen layout
+                // Implement Tennis drill screen layout
             }
 
             @Composable

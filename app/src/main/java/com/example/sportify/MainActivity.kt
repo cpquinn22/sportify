@@ -231,25 +231,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-
-
-
-
-
-        @Composable
-        fun SportDetailsScreen(sportName: String) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = sportName, style = MaterialTheme.typography.titleLarge)
-                ////////////// Add more details here /////////////////////////
-            }
-        }
     }
 
 }
