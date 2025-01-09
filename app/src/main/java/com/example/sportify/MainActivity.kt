@@ -207,6 +207,22 @@ class MainActivity : ComponentActivity() {
                 DrillActivity(navController, sportName, DrillsRepository())
             }
             composable("basketballDrills") { BasketballDrillScreen(navController) }
+            composable("drillsList/{sportName}") { backStackEntry ->
+                val sportName = backStackEntry.arguments?.getString("sportName") ?: ""
+                val drillsRepository = DrillsRepository()
+                val drills = remember { mutableStateOf<Map<String, Drill>>(emptyMap()) }
+
+                // Fetch drills dynamically for the given sport
+                LaunchedEffect(sportName) {
+                    drills.value = drillsRepository.getDrillsBySport(sportName)
+                }
+
+                // Pass the fetched drills to DrillsListScreen
+                DrillsListScreen(
+                    drills = drills.value,
+                    navController = navController
+                )
+            }
             composable("shootingDrills") { ShootingDrillScreen(navController) }
             composable("drillDetails/{drillKey}")
             { backStackEntry ->

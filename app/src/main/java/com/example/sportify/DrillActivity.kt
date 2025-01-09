@@ -46,7 +46,7 @@ fun DrillActivity(
     if (drills.value.isEmpty()) {
         ComingSoonScreen(navController, sportName)
     } else {
-        DrillsListScreen(drills = drills.value, navController = navController)
+        navController.navigate("basketballDrills")
     }
 }
 
@@ -59,15 +59,19 @@ fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostControlle
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        drills.forEach { (key, drill) ->
-            Button(
-                onClick = {
-                    Log.d("DrillActivity", "Navigating to drillDetails/$key")
-                    navController.navigate("drillDetails/$key")
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(drill.name)
+        if (drills.isEmpty()) {
+            Text("No drills available.")
+        } else {
+            drills.forEach { (key, drill) ->
+                Button(
+                    onClick = {
+                        navController.navigate("drillDetails/$key")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    Text(drill.name)
+                }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -198,7 +202,7 @@ fun BasketballDrillScreen(navController: NavHostController) {
             style = androidx.compose.material3.MaterialTheme.typography.titleLarge
         )
         Button(
-            onClick = { navController.navigate("drill/shooting") },
+            onClick = { navController.navigate("drillsList/Basketball") },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Shooting")
