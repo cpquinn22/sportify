@@ -51,6 +51,26 @@ fun DrillActivity(
 }
 
 @Composable
+fun ComingSoonScreen(navController: NavHostController, sportName: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "$sportName features are coming soon!",
+            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { navController.navigate("sports") }) {
+            Text("Back to Sports")
+        }
+    }
+}
+
+@Composable
 fun DrillsListScreen(drills: Map<String, Drill>, navController: NavHostController) {
     Column(
         modifier = Modifier
@@ -207,7 +227,8 @@ fun BasketballDrillScreen(navController: NavHostController) {
         ) {
             Text("Shooting")
         }
-        Button(onClick = { /* Handle Weight Training */ }, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = { navController.navigate("weightTraining") }
+            , modifier = Modifier.fillMaxWidth()) {
             Text("Weight Training")
         }
         Button(onClick = { /* Handle Fitness */ }, modifier = Modifier.fillMaxWidth()) {
@@ -260,241 +281,390 @@ fun ShootingDrillScreen(navController: NavHostController) {
 
 
 @Composable
-fun ThreePointShootingScreen(navController: NavHostController) {
-    val shotsMade = remember { mutableStateOf("") }
+fun WeightTrainingScreen(
+    navController: NavHostController,
+    drillsRepository: DrillsRepository
+) {
+    val exercises = remember { mutableStateOf<Map<String, Drill>>(emptyMap()) }
+    val scope = rememberCoroutineScope()
 
-    val shootingPercentage = remember(shotsMade.value) {
-        calculatePercentage(shotsMade.value, 15)
+    // Fetch Weight Training drills
+    LaunchedEffect(Unit) {
+        scope.launch {
+            exercises.value = drillsRepository.getWeightTrainingDrills()
+        }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            "3 Point Shooting",
-            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+        Text("Weight Training",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Set yourself up on a spot at the 3 point line.")
-        Text("Take 15 shots at this spot and record how many you make.")
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            var shotsMade by remember { mutableStateOf("") }
-            TextField(
-                value = shotsMade,
-                onValueChange = { shotsMade = it },
-                label = { Text("Enter shots made") },
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("/15", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
-        }
-        Text(
-            "Shooting Percentage: $shootingPercentage%",
-            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = { navController.navigate("drill/shooting") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Back to Shooting Drills")
-        }
-    }
-}
 
-@Composable
-fun OffTheDribbleScreen(navController: NavHostController) {
-    val offDribbleShots = remember {
-        mutableStateOf("")
-    }
-    val offDribblePercentage = remember(offDribbleShots.value) {
-        calculatePercentage(offDribbleShots.value, 15)
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            "Off the Dribble",
-            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Dribble from the middle of the court and take a shot along the 3 point line.")
-        Text("Take 15 shots from the same spot and record how many you make.")
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextField(
-                value = offDribbleShots.value,
-                onValueChange = { offDribbleShots.value = it },
-                label = { Text("Enter off-the-dribble shots made") },
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("/15", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
-        }
-        Text(
-            "Off the Dribble Percentage: $offDribblePercentage%",
-            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-fun FreeThrowScreen(navController: NavHostController) {
-    val shotsMade = remember { mutableStateOf("") }
-
-    val shootingPercentage = remember(shotsMade.value) {
-        calculatePercentage(shotsMade.value, 15)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            "Free Throw Shooting",
-            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Stand at the free throw line and take 15 shots. Record how many you make.")
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextField(
-                value = shotsMade.value,
-                onValueChange = { shotsMade.value = it },
-                label = { Text("Enter shots made") },
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("/15", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
-        }
-        Text(
-            "Shooting Percentage: $shootingPercentage%",
-            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = { navController.navigate("drill/shooting") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Back to Shooting Drills")
-        }
-    }
-}
-
-
-@Composable
-fun ComingSoonScreen(navController: NavHostController, sportName: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            "$sportName features are coming soon!",
-            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("sports") }) {
-            Text("Back to Sports")
-        }
-    }
-}
-
-@Composable
-fun DefaultDrillScreen(navController: NavHostController, sportName: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("No drills available for $sportName")
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { navController.navigate("sports") }) {
-            Text("Back to Sports")
-
-
-            @Composable
-            fun TennisDrillScreen(navController: NavHostController) {
-                // Implement Tennis drill screen layout
-            }
-
-            @Composable
-            fun FootballDrillScreen(navController: NavHostController) {
-                println("Football coming soon")
-                // Implement Football drill screen layout
-            }
-
-            @Composable
-            fun ComingSoonScreen(navController: NavHostController, sportName: String) {
-                Column(
+        if (exercises.value.isEmpty()) {
+            Text("No weight training drills available.")
+        } else {
+            exercises.value.forEach { (key, drill) ->
+                Button(
+                    onClick = { navController.navigate("weightTrainingDetails/$key") },
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .fillMaxWidth()
+                        .height(48.dp) // Adjust height for consistent button size
+                        .padding(horizontal = 0.dp) // Remove extra padding
                 ) {
                     Text(
-                        "$sportName: Coming Soon",
-                        style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+                        text = drill.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { navController.navigate("sports") }) {
-                        Text("Back to Sports")
-                    }
-                }
-            }
-
-            @Composable
-            fun DefaultDrillScreen(navController: NavHostController) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Drills not available",
-                        style = androidx.compose.material3.MaterialTheme.typography.titleLarge
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { navController.navigate("sports") }) {
-                        Text("Back to Sports")
-                    }
                 }
             }
         }
     }
 }
+
+
+@Composable
+fun WeightTrainingDetailsScreen(
+    navController: NavHostController,
+    exerciseKey: String,
+    drillsRepository: DrillsRepository
+) {
+    var exerciseDetails by remember { mutableStateOf<Drill?>(null) }
+    var weight by remember { mutableStateOf("") }
+    var setNumber by remember { mutableStateOf("") }
+    var reps by remember { mutableStateOf("") }
+    var logs = remember { mutableStateListOf<Map<String, Any>>() }
+
+    val scope = rememberCoroutineScope()
+
+    // Fetch exercise details and logs when the screen loads
+    LaunchedEffect(exerciseKey) {
+        scope.launch {
+            val allDrills = drillsRepository.getWeightTrainingDrills()
+            exerciseDetails = allDrills[exerciseKey]
+
+            val fetchedLogs = drillsRepository.getLogsByDrill("WeightTraining", exerciseKey)
+            Log.d("WeightTrainingDetails", "Fetched Logs: $fetchedLogs")
+            logs.clear()
+            logs.addAll(fetchedLogs)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Log ${exerciseDetails?.name ?: exerciseKey}", style = MaterialTheme.typography.titleLarge)
+
+        // Display exercise description
+        exerciseDetails?.description?.let { description ->
+            Text(description, style = MaterialTheme.typography.bodyLarge)
+        }
+
+        // Display steps
+        exerciseDetails?.steps
+            ?.toSortedMap(compareBy { it })
+            ?.forEach { (key, step) ->
+                Text("$key: $step", style = MaterialTheme.typography.bodyMedium)
+            }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Weight Field
+        TextField(
+            value = weight,
+            onValueChange = { weight = it.filter { it.isDigit() } },
+            label = { Text("Weight (kg)") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Set Number Field
+        TextField(
+            value = setNumber,
+            onValueChange = { setNumber = it.filter { it.isDigit() } },
+            label = { Text("Set Number") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Reps Field
+        TextField(
+            value = reps,
+            onValueChange = { reps = it.filter { it.isDigit() } },
+            label = { Text("Reps") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = {
+                if (weight.isNotEmpty() && setNumber.isNotEmpty() && reps.isNotEmpty()) {
+                    drillsRepository.addWeightTrainingLog(
+                        exerciseName = exerciseKey,
+                        weight = weight.toInt(),
+                        setNumber = setNumber.toInt(),
+                        reps = reps.toInt()
+                    )
+                    scope.launch {
+                        logs.clear()
+                        logs.addAll(drillsRepository.getLogsByDrill("WeightTraining", exerciseKey))
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Log Exercise")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text("Logs", style = MaterialTheme.typography.titleMedium)
+
+        if (logs.isEmpty()) {
+            Text("No logs available", style = MaterialTheme.typography.bodyLarge)
+        } else {
+            logs.forEachIndexed { index, log ->
+                val logWeight = log["weight"] as? Long ?: 0
+                val logSetNumber = log["setNumber"] as? Long ?: 0
+                val logReps = log["reps"] as? Long ?: 0
+                val timestamp = log["timestamp"]
+                val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
+
+                Text(
+                    text = "Log ${index + 1}: Weight - $logWeight kg, Set Number - $logSetNumber, Reps - $logReps, Date - $formattedDate",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+    }
+}
+
+    @Composable
+    fun ThreePointShootingScreen(navController: NavHostController) {
+        val shotsMade = remember { mutableStateOf("") }
+
+        val shootingPercentage = remember(shotsMade.value) {
+            calculatePercentage(shotsMade.value, 15)
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "3 Point Shooting",
+                style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Set yourself up on a spot at the 3 point line.")
+            Text("Take 15 shots at this spot and record how many you make.")
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                var shotsMade by remember { mutableStateOf("") }
+                TextField(
+                    value = shotsMade,
+                    onValueChange = { shotsMade = it },
+                    label = { Text("Enter shots made") },
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("/15", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+            }
+            Text(
+                "Shooting Percentage: $shootingPercentage%",
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { navController.navigate("drill/shooting") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Back to Shooting Drills")
+            }
+        }
+    }
+
+    @Composable
+    fun OffTheDribbleScreen(navController: NavHostController) {
+        val offDribbleShots = remember {
+            mutableStateOf("")
+        }
+        val offDribblePercentage = remember(offDribbleShots.value) {
+            calculatePercentage(offDribbleShots.value, 15)
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Off the Dribble",
+                style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Dribble from the middle of the court and take a shot along the 3 point line.")
+            Text("Take 15 shots from the same spot and record how many you make.")
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextField(
+                    value = offDribbleShots.value,
+                    onValueChange = { offDribbleShots.value = it },
+                    label = { Text("Enter off-the-dribble shots made") },
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("/15", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+            }
+            Text(
+                "Off the Dribble Percentage: $offDribblePercentage%",
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+
+    @Composable
+    fun FreeThrowScreen(navController: NavHostController) {
+        val shotsMade = remember { mutableStateOf("") }
+
+        val shootingPercentage = remember(shotsMade.value) {
+            calculatePercentage(shotsMade.value, 15)
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Free Throw Shooting",
+                style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Stand at the free throw line and take 15 shots. Record how many you make.")
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextField(
+                    value = shotsMade.value,
+                    onValueChange = { shotsMade.value = it },
+                    label = { Text("Enter shots made") },
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("/15", style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+            }
+            Text(
+                "Shooting Percentage: $shootingPercentage%",
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { navController.navigate("drill/shooting") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Back to Shooting Drills")
+            }
+        }
+    }
+
+
+
+
+    @Composable
+    fun DefaultDrillScreen(navController: NavHostController, sportName: String) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("No drills available for $sportName")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { navController.navigate("sports") }) {
+                Text("Back to Sports")
+
+
+                @Composable
+                fun TennisDrillScreen(navController: NavHostController) {
+                    // Implement Tennis drill screen layout
+                }
+
+                @Composable
+                fun FootballDrillScreen(navController: NavHostController) {
+                    println("Football coming soon")
+                    // Implement Football drill screen layout
+                }
+
+                @Composable
+                fun ComingSoonScreen(navController: NavHostController, sportName: String) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "$sportName: Coming Soon",
+                            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { navController.navigate("sports") }) {
+                            Text("Back to Sports")
+                        }
+                    }
+                }
+
+                @Composable
+                fun DefaultDrillScreen(navController: NavHostController) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Drills not available",
+                            style = androidx.compose.material3.MaterialTheme.typography.titleLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { navController.navigate("sports") }) {
+                            Text("Back to Sports")
+                        }
+                    }
+                }
+            }
+        }
+    }

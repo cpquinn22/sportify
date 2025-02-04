@@ -246,6 +246,18 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+
+            composable("weightTraining") {
+                WeightTrainingScreen(navController = navController, drillsRepository = DrillsRepository())
+            }
+            composable("weightTrainingDetails/{exerciseKey}") { backStackEntry ->
+                val exerciseKey = backStackEntry.arguments?.getString("exerciseKey") ?: ""
+                WeightTrainingDetailsScreen(
+                    navController = navController,
+                    exerciseKey = exerciseKey,
+                    drillsRepository = DrillsRepository()
+                )
+            }
         }
     }
 
