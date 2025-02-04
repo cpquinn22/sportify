@@ -2,6 +2,7 @@ package data
 
 import android.util.Log
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.type.Date
 import kotlinx.coroutines.tasks.await
@@ -10,6 +11,7 @@ import java.util.Locale
 
 data class Drill(
     val name: String = "",
+    val description: String,
     val steps: Map<String, String> = emptyMap()
 )
 
@@ -27,6 +29,7 @@ class DrillsRepository {
                 val drillData = entry.value as Map<*, *>
                 Drill(
                     name = drillData["name"] as String,
+                    description = drillData["description"] as? String ?: "",
                     steps = drillData.filterKeys {
                         it.toString().startsWith("step_")
                     } as Map<String, String>
@@ -80,6 +83,48 @@ class DrillsRepository {
             "Unknown Date"
         }
 
-
     }
+
+    suspend fun getWeightTrainingDrills(): Map<String, Drill> {
+        return try {
+            val documentSnapshot = drillsCollection.document("WeightTraining").get().await()
+            documentSnapshot.data?.mapValues { entry ->
+                val exerciseData = entry.value as Map<*, *>
+                Drill(
+                    name = entry.key,
+                    description = exerciseData["description"] as? String ?: "",
+                    steps = (exerciseData["Steps"] as? Map<String, String>) ?: emptyMap()
+                )
+            } ?: emptyMap()
+        } catch (e: Exception) {
+            Log.e("Firestore", "Error fetching weight training drills", e)
+            emptyMap()
+        }
+    }
+
+    fun addWeightTrainingLog(
+        exerciseName: String,
+        weight: Int,
+        setNumber: Int,
+        reps: Int
+    ) {
+        val log = mapOf(
+            "weight" to weight,
+            "setNumber" to setNumber,
+            "reps" to reps,
+            "timestamp" to FieldValue.serverTimestamp()
+        )
+
+        val logsCollection = drillsCollection.document("WeightTraining")
+            .collection("logs_${exerciseName.lowercase()}")
+
+        logsCollection.add(log)
+            .addOnSuccessListener {
+                Log.d("Firestore", "Successfully added log for $exerciseName")
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error adding log for $exerciseName", e)
+            }
+    }
+
 }
