@@ -2,6 +2,8 @@ package com.example.sportify
 
 import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -231,7 +233,7 @@ fun BasketballDrillScreen(navController: NavHostController) {
             , modifier = Modifier.fillMaxWidth()) {
             Text("Weight Training")
         }
-        Button(onClick = { /* Handle Fitness */ }, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = { navController.navigate("fitness") }, modifier = Modifier.fillMaxWidth()) {
             Text("Fitness")
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -451,6 +453,205 @@ fun WeightTrainingDetailsScreen(
             }
         }
     }
+}
+
+@Composable
+fun FitnessScreen(navController: NavHostController, drillsRepository: DrillsRepository) {
+    val drills = remember { mutableStateOf<Map<String, Drill>>(emptyMap()) }
+    val scope = rememberCoroutineScope()
+
+    // Fetch fitness drills when screen loads
+    LaunchedEffect(Unit) {
+        scope.launch {
+            drills.value = drillsRepository.getFitnessDrills()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Fitness Drills", style = MaterialTheme.typography.titleLarge)
+
+        if (drills.value.isEmpty()) {
+            Text("No fitness drills available.")
+        } else {
+            drills.value.forEach { (key, drill) ->
+                Button(
+                    onClick = { navController.navigate("fitnessDetails/$key") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(drill.name)
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun FitnessDetailsScreen(
+    navController: NavHostController,
+    drillKey: String,
+    drillsRepository: DrillsRepository
+) {
+    var drillDetails by remember { mutableStateOf<Drill?>(null) }
+    var minutesCompleted by remember { mutableStateOf("") }
+    var roundsCompleted by remember { mutableStateOf("") }
+    var logs = remember { mutableStateListOf<Map<String, Any>>() }
+    val averageTimePerKm = remember(minutesCompleted) {
+        calculateAverageTimePerKm(minutesCompleted)
+    }
+    val scope = rememberCoroutineScope()
+
+    // Fetch drill details and logs
+    LaunchedEffect(drillKey) {
+        scope.launch {
+            val allDrills = drillsRepository.getFitnessDrills()
+            drillDetails = allDrills[drillKey]
+            drillsRepository.addLogsSnapshotListener(drillKey, logs)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()), // Enable vertical scrolling for the entire screen
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Drill Title
+        Text(drillDetails?.name ?: drillKey, style = MaterialTheme.typography.titleLarge)
+
+        // Drill Description
+        drillDetails?.description?.let { description ->
+            Text(description, style = MaterialTheme.typography.bodyLarge)
+        }
+
+        // Drill Steps
+        drillDetails?.steps?.toSortedMap(compareBy { it })?.forEach { (key, step) ->
+            Text("$key: $step", style = MaterialTheme.typography.bodyMedium)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Input and logic for 5K or rounds
+        if (drillKey == "5k_run") {
+            // Minutes to complete 5K
+            TextField(
+                value = minutesCompleted,
+                onValueChange = { minutesCompleted = it.filter { char -> char.isDigit() || char == '.' } },
+                label = { Text("Minutes to complete 5K") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Average Time per KM: $averageTimePerKm min/km", style = MaterialTheme.typography.bodyLarge)
+
+            Button(
+                onClick = {
+                    if (minutesCompleted.isNotEmpty()) {
+                        drillsRepository.addFitnessLog(
+                            drillName = drillKey,
+                            totalTime = minutesCompleted.toFloat(),
+                            avgTimePerKm = averageTimePerKm.toFloatOrNull() ?: 0f
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Log")
+            }
+        } else {
+            // Rounds Completed
+            TextField(
+                value = roundsCompleted,
+                onValueChange = { roundsCompleted = it.filter { char -> char.isDigit() } },
+                label = { Text("Enter rounds completed") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    if (roundsCompleted.isNotEmpty()) {
+                        drillsRepository.logRounds(drillKey, roundsCompleted.toInt())
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Log Rounds")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Logs Section
+        Text("Logs", style = MaterialTheme.typography.titleMedium)
+
+        if (logs.isEmpty()) {
+            Text("No logs available", style = MaterialTheme.typography.bodyLarge)
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp), // Restrict height for LazyColumn to allow smooth scrolling
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(logs.toList()) { log -> // Convert SnapshotStateList to a standard List
+                    val rounds = log["roundsCompleted"] as? Long ?: 0
+                    val totalTime = log["totalTime"] as? Double ?: 0.0
+                    val avgTimePerKm = log["avgTimePerKm"] as? Double ?: 0.0
+                    val timestamp = log["timestamp"]
+                    val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
+
+                    if (drillKey == "5k_run") {
+                        Text(
+                            text = "Total Time - ${String.format("%.2f", totalTime)} min, " +
+                                    "Average Time per KM - ${String.format("%.2f", avgTimePerKm)} min/km, Date - $formattedDate",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    } else {
+                        Text(
+                            text = "Rounds Completed - $rounds, Date - $formattedDate",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Back Button
+        Button(onClick = { navController.navigate("fitness") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Back to Fitness")
+        }
+    }
+}
+
+// Function to calculate average time per kilometer
+fun calculateAverageTimePerKm(totalMinutes: String): String {
+    val minutes = totalMinutes.toFloatOrNull() ?: return "0.0"
+    val avgTime = minutes / 5 // Divide by 5K
+    return String.format("%.2f", avgTime)
+}
+
+// Fetch logs from Firestore
+suspend fun fetchLogs(
+    drillsRepository: DrillsRepository,
+    drillKey: String,
+    logs: MutableList<Map<String, Any>>
+) {
+    val fetchedLogs = drillsRepository.getLogsByDrill("Fitness", drillKey)
+    logs.clear()
+    logs.addAll(fetchedLogs.sortedByDescending {
+        (it["timestamp"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: 0L
+    })
 }
 
     @Composable
