@@ -344,23 +344,30 @@ fun WeightTrainingDetailsScreen(
 
     val scope = rememberCoroutineScope()
 
+
+    // Function to fetch logs dynamically
+    suspend fun fetchLogs() {
+        val fetchedLogs = drillsRepository.getLogsByDrill("WeightTraining", exerciseKey)
+        logs.clear()
+        logs.addAll(fetchedLogs.sortedByDescending {
+            (it["timestamp"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: 0L
+        }) // Sort by latest logs first
+    }
+
     // Fetch exercise details and logs when the screen loads
     LaunchedEffect(exerciseKey) {
         scope.launch {
             val allDrills = drillsRepository.getWeightTrainingDrills()
             exerciseDetails = allDrills[exerciseKey]
-
-            val fetchedLogs = drillsRepository.getLogsByDrill("WeightTraining", exerciseKey)
-            Log.d("WeightTrainingDetails", "Fetched Logs: $fetchedLogs")
-            logs.clear()
-            logs.addAll(fetchedLogs)
+            fetchLogs()
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+        .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -414,8 +421,7 @@ fun WeightTrainingDetailsScreen(
                         reps = reps.toInt()
                     )
                     scope.launch {
-                        logs.clear()
-                        logs.addAll(drillsRepository.getLogsByDrill("WeightTraining", exerciseKey))
+                        fetchLogs()
                     }
                 }
             },

@@ -62,10 +62,21 @@ class DrillsRepository {
 
     suspend fun getLogsByDrill(sportName: String, drillName: String): List<Map<String, Any>> {
         return try {
+            // Determine naming convention based on sportName
+            val normalizedDrillName = when (sportName) {
+                "Basketball" -> drillName // Retain spaces for Basketball
+                "WeightTraining" -> drillName.lowercase() // Convert to lowercase for WeightTraining
+                else -> drillName // Default case
+            }
+
+            val collectionName = "logs_$normalizedDrillName"
             val snapshot =
-                drillsCollection.document(sportName).collection("logs_$drillName").get().await()
-            snapshot.documents.map { it.data ?: emptyMap() }
+                drillsCollection.document(sportName).collection(collectionName).get().await()
+            val logs = snapshot.documents.map { it.data ?: emptyMap() }
+            Log.d("Firestore", "✅ Logs fetched for $sportName - $drillName: $logs")
+            logs
         } catch (e: Exception) {
+            Log.e("Firestore", "❌ Error fetching logs for $sportName - $drillName", e)
             emptyList()
         }
     }
