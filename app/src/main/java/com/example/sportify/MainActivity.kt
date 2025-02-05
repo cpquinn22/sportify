@@ -258,6 +258,18 @@ class MainActivity : ComponentActivity() {
                     drillsRepository = DrillsRepository()
                 )
             }
+
+            composable("fitness") {
+                FitnessScreen(navController = navController, drillsRepository = DrillsRepository())
+            }
+            composable("fitnessDetails/{drillKey}") { backStackEntry ->
+                val drillKey = backStackEntry.arguments?.getString("drillKey") ?: ""
+                FitnessDetailsScreen(
+                    navController = navController,
+                    drillKey = drillKey,
+                    drillsRepository = DrillsRepository()
+                )
+            }
         }
     }
 

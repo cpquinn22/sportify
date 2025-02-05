@@ -138,4 +138,73 @@ class DrillsRepository {
             }
     }
 
+    suspend fun getFitnessDrills(): Map<String, Drill> {
+        return try {
+            val documentSnapshot = drillsCollection.document("Fitness").get().await()
+            documentSnapshot.data?.mapValues { entry ->
+                val fitnessData = entry.value as Map<*, *>
+                Drill(
+                    name = fitnessData["name"] as String,
+                    description = fitnessData["description"] as? String ?: "",
+                    steps = (fitnessData["steps"] as? Map<String, String>) ?: emptyMap()
+                )
+            } ?: emptyMap()
+        } catch (e: Exception) {
+            Log.e("Firestore", "Error fetching fitness drills", e)
+            emptyMap()
+        }
+    }
+
+    fun addFitnessLog(drillName: String, totalTime: Float, avgTimePerKm: Float) {
+        val log = mapOf(
+            "totalTime" to totalTime,
+            "avgTimePerKm" to avgTimePerKm,
+            "timestamp" to FieldValue.serverTimestamp()
+        )
+
+        val logsCollection = drillsCollection.document("Fitness")
+            .collection("logs_${drillName.lowercase()}")
+
+        logsCollection.add(log)
+            .addOnSuccessListener {
+                Log.d("Firestore", "Successfully added log for $drillName")
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error adding log for $drillName", e)
+            }
+    }
+
+    fun logRounds(drillType: String, rounds: Int) {
+        val log = mapOf(
+            "roundsCompleted" to rounds,
+            "timestamp" to FieldValue.serverTimestamp()
+        )
+
+        drillsCollection.document("Fitness").collection("logs_$drillType")
+            .add(log)
+            .addOnSuccessListener {
+                Log.d("Firestore", "Rounds log added successfully for $drillType")
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error adding rounds log for $drillType", e)
+            }
+    }
+
+    fun addLogsSnapshotListener(drillKey: String, logs: MutableList<Map<String, Any>>) {
+        val logsCollection = drillsCollection.document("Fitness")
+            .collection("logs_${drillKey.lowercase()}")
+
+        logsCollection.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                Log.e("Firestore", "Error listening for logs updates", e)
+                return@addSnapshotListener
+            }
+
+            if (snapshot != null && !snapshot.isEmpty) {
+                logs.clear()
+                logs.addAll(snapshot.documents.mapNotNull { it.data })
+            }
+        }
+    }
+
 }
