@@ -40,6 +40,7 @@ import data.Drill
 import data.DrillsRepository
 
 
+
 // Data Model
 data class Sport(
     val name: String,
@@ -223,6 +224,7 @@ class MainActivity : ComponentActivity() {
                     navController = navController
                 )
             }
+
             composable("shootingDrills") { ShootingDrillScreen(navController) }
             composable("drillDetails/{drillKey}")
             { backStackEntry ->
@@ -246,6 +248,10 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+
+            composable("tennisDrills") { TennisDrillScreen(navController) }
+
+            composable("footballDrills") { FootballDrillScreen(navController) }
 
             composable("weightTraining") {
                 WeightTrainingScreen(navController = navController, drillsRepository = DrillsRepository())

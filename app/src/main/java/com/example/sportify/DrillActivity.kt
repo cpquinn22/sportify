@@ -45,10 +45,23 @@ fun DrillActivity(
         }
     }
 
-    if (drills.value.isEmpty()) {
-        ComingSoonScreen(navController, sportName)
-    } else {
-        navController.navigate("basketballDrills")
+    // Logic to handle different sports
+    when {
+        sportName == "Basketball" -> {
+            BasketballDrillScreen(navController) // Display the basketball menu screen
+        }
+        sportName == "Tennis" -> {
+            TennisDrillScreen(navController)
+        }
+        sportName == "Football" -> {
+            FootballDrillScreen(navController)
+        }
+        drills.value.isEmpty() -> {
+            ComingSoonScreen(navController, sportName)
+        }
+        else -> {
+            DrillsListScreen(drills = drills.value, navController = navController)
+        }
     }
 }
 
@@ -277,6 +290,56 @@ fun ShootingDrillScreen(navController: NavHostController) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Back to Basketball Drills")
+        }
+    }
+}
+
+@Composable
+fun TennisDrillScreen(navController: NavHostController) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Tennis Drills", style = MaterialTheme.typography.titleLarge)
+        Button(onClick = { navController.navigate("drillsList/Tennis") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Tennis Drills")
+        }
+        Button(onClick = { navController.navigate("weightTraining") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Weight Training")
+        }
+        Button(onClick = { navController.navigate("fitness") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Fitness")
+        }
+        Button(onClick = { navController.navigate("sports") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Back to Sports")
+        }
+    }
+}
+
+@Composable
+fun FootballDrillScreen(navController: NavHostController) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Football Drills", style = MaterialTheme.typography.titleLarge)
+        Button(onClick = { navController.navigate("drillsList/Football") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Football Drills")
+        }
+        Button(onClick = { navController.navigate("weightTraining") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Weight Training")
+        }
+        Button(onClick = { navController.navigate("fitness") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Fitness")
+        }
+        Button(onClick = { navController.navigate("sports") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Back to Sports")
         }
     }
 }
@@ -641,6 +704,7 @@ fun calculateAverageTimePerKm(totalMinutes: String): String {
     return String.format("%.2f", avgTime)
 }
 
+
 // Fetch logs from Firestore
 suspend fun fetchLogs(
     drillsRepository: DrillsRepository,
@@ -822,16 +886,7 @@ suspend fun fetchLogs(
                 Text("Back to Sports")
 
 
-                @Composable
-                fun TennisDrillScreen(navController: NavHostController) {
-                    // Implement Tennis drill screen layout
-                }
 
-                @Composable
-                fun FootballDrillScreen(navController: NavHostController) {
-                    println("Football coming soon")
-                    // Implement Football drill screen layout
-                }
 
                 @Composable
                 fun ComingSoonScreen(navController: NavHostController, sportName: String) {
