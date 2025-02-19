@@ -1,6 +1,8 @@
 package com.example.sportify
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -35,7 +37,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.google.firebase.FirebaseApp
+import com.google.firebase.messaging.FirebaseMessaging
 import data.Drill
 import data.DrillsRepository
 
@@ -69,7 +74,17 @@ class SportsViewModel : ViewModel() {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         FirebaseApp.initializeApp(this)
+
+        // Request notification permission (For Android 13+)
+        requestNotificationPermission()
+
+        // Subscribe to FCM topic for daily workout reminders
+        subscribeToWorkoutReminders()
+
+        // Get and log the FCM token
+        retrieveFcmToken()
 
         // Check authentication state
         val user = Firebase.auth.currentUser
@@ -90,6 +105,54 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Request notification permission (Required for Android 13+)
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33) { // API 33+ (Android 13+)
+            val permission = "android.permission.POST_NOTIFICATIONS"
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    permission
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(this, arrayOf(permission), 1)
+            }
+        }
+    }
+
+    /**
+     * Subscribe to the "workout_reminders" topic
+     */
+    private fun subscribeToWorkoutReminders() {
+        FirebaseMessaging.getInstance().subscribeToTopic("workout_reminders")
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("FCM", "✅ Successfully subscribed to 'workout_reminders' topic")
+                } else {
+                    Log.e("FCM", "❌ Failed to subscribe to topic", task.exception)
+                }
+            }
+    }
+
+    /**
+     * Retrieve and log the Firebase Cloud Messaging (FCM) token
+     */
+    private fun retrieveFcmToken() {
+        FirebaseMessaging.getInstance().token
+            .addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.e("FCM", "❌ Failed to get FCM token", task.exception)
+                    return@addOnCompleteListener
+                }
+                // Get the new token
+                val token = task.result
+                Log.d("FCM", "🔑 FCM Token: $token")
+
+                // Here, you could send the token to your backend if needed
+            }
     }
 
     @Preview(showBackground = true)
@@ -129,7 +192,7 @@ class MainActivity : ComponentActivity() {
         ) {
             sports.forEach { sport ->
                 SportCard(sport) {
-                    navController.navigate("details/${sport.name}"){
+                    navController.navigate("details/${sport.name}") {
                         Log.d("Navigation", "Navigating to details/${sport.name}")
                     }
                 }
@@ -254,7 +317,10 @@ class MainActivity : ComponentActivity() {
             composable("footballDrills") { FootballDrillScreen(navController) }
 
             composable("weightTraining") {
-                WeightTrainingScreen(navController = navController, drillsRepository = DrillsRepository())
+                WeightTrainingScreen(
+                    navController = navController,
+                    drillsRepository = DrillsRepository()
+                )
             }
             composable("weightTrainingDetails/{exerciseKey}") { backStackEntry ->
                 val exerciseKey = backStackEntry.arguments?.getString("exerciseKey") ?: ""
@@ -278,5 +344,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
 }
