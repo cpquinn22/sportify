@@ -43,6 +43,10 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import data.Drill
 import data.DrillsRepository
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import java.util.Calendar
 
 
 
@@ -71,6 +75,32 @@ class SportsViewModel : ViewModel() {
     }
 
 }
+
+private fun scheduleDailyWorkoutReminder(context: Context) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val intent = Intent(context, WorkoutReminderReceiver::class.java) // Ensure this matches your receiver class name
+    val pendingIntent = PendingIntent.getBroadcast(
+        context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    val calendar = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 17) // Set time for 10:00 AM
+        set(Calendar.MINUTE, 13)
+        set(Calendar.SECOND, 0)
+    }
+
+    // If the time has already passed today, schedule it for tomorrow
+    if (Calendar.getInstance().after(calendar)) {
+        calendar.add(Calendar.DAY_OF_YEAR, 1)
+    }
+
+    alarmManager.setRepeating(
+        AlarmManager.RTC_WAKEUP,
+        calendar.timeInMillis,
+        AlarmManager.INTERVAL_DAY,
+        pendingIntent
+    )
+}
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +109,9 @@ class MainActivity : ComponentActivity() {
 
         // Request notification permission (For Android 13+)
         requestNotificationPermission()
+
+        // Schedule the daily alarm
+        scheduleDailyWorkoutReminder(this)
 
         // Subscribe to FCM topic for daily workout reminders
         subscribeToWorkoutReminders()
