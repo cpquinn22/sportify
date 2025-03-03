@@ -84,8 +84,8 @@ private fun scheduleDailyWorkoutReminder(context: Context) {
     )
 
     val calendar = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 17) // Set time for 10:00 AM
-        set(Calendar.MINUTE, 13)
+        set(Calendar.HOUR_OF_DAY, 10) // Set time for 10:00 AM
+        set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
     }
 

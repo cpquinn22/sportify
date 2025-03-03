@@ -70,8 +70,14 @@ class DrillsRepository {
             }
 
             val collectionName = "logs_$normalizedDrillName"
-            val snapshot =
-                drillsCollection.document(sportName).collection(collectionName).get().await()
+
+            // Order logs by timestamp (newest first)
+            val snapshot = drillsCollection.document(sportName)
+                .collection(collectionName)
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .get()
+                .await()
+
             val logs = snapshot.documents.map { it.data ?: emptyMap() }
             Log.d("Firestore", "✅ Logs fetched for $sportName - $drillName: $logs")
             logs
