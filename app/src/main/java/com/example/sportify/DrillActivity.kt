@@ -27,6 +27,11 @@ import data.Drill
 import data.DrillsRepository
 import kotlinx.coroutines.launch
 import java.security.Timestamp
+import androidx.compose.ui.graphics.Color
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 @Composable
@@ -136,16 +141,28 @@ fun DrillDetailsScreen(
     suspend fun fetchLogs() {
         val fetchedLogs = repository.getLogsByDrill(sportName, drillName)
         logs.clear()
-        logs.addAll(
-            fetchedLogs.sortedByDescending {
-                (it["timestamp"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: 0L
-            }
-        )
+        logs.addAll(fetchedLogs)
     }
 
     LaunchedEffect(drillName) {
         fetchLogs()
     }
+
+    // Group logs by date
+    val groupedLogs = logs.groupBy { log ->
+        val timestamp = log["timestamp"]
+        repository.formatTimestampToDateString(timestamp).split(" ")[0] // Extract date only
+    }
+
+    // Sort logs by date (most recent first)
+    val sortedGroupedLogs = groupedLogs.toSortedMap(compareByDescending { dateString ->
+        try {
+            SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(dateString)
+        } catch (e: ParseException) {
+            Log.e("DateParsing", "❌ Failed to parse date: $dateString", e)
+            Date(0) // Return a default date (01-01-1970) so invalid dates go to the bottom
+        }
+    })
 
     Column(
         modifier = Modifier
@@ -157,9 +174,12 @@ fun DrillDetailsScreen(
     ) {
         Text(drill.name, style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(8.dp))
+
+        // display drill steps
         drill.steps.forEach { (_, stepValue) ->
             Text(stepValue, style = MaterialTheme.typography.bodyLarge)
         }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         // Input field
@@ -184,7 +204,7 @@ fun DrillDetailsScreen(
                     drillsRepository.addLogToFirestore(sportName, drillName, shots, percentage)
 
                     scope.launch {
-                        fetchLogs()
+                        fetchLogs() // refresh logs after adding new data
                     }
                 }
             },
@@ -195,23 +215,33 @@ fun DrillDetailsScreen(
             Text(text = "Log")
         }
 
-
         Spacer(modifier = Modifier.height(24.dp))
 
+        // display logs with grouped dates
         Text("Logs", style = MaterialTheme.typography.titleMedium)
 
         if (logs.isEmpty()) {
             Text("No logs available", style = MaterialTheme.typography.bodyLarge)
         } else {
-            logs.forEachIndexed { index, log ->
-                val shots = log["shotsMade"] as? Long ?: 0
-                val percentage = log["shootingPercentage"] as? Long ?: 0
-                val timestamp = log["timestamp"]
-                val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
-                Text(
-                    text = "Log ${index + 1}: Shots Made - $shots, Percentage - $percentage%, Date - $formattedDate",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                sortedGroupedLogs.forEach { (date, logsForDate) ->
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF03A9F4),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    logsForDate.forEachIndexed { index, log ->
+                        val shots = log["shotsMade"] as? Long ?: 0
+                        val percentage = log["shootingPercentage"] as? Long ?: 0
+                        val timestamp = log["timestamp"]
+                        val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
+                        Text(
+                            text = "Log ${index + 1}: Shots Made - $shots, Percentage - $percentage%, Date - $formattedDate",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
             }
         }
     }
@@ -410,33 +440,70 @@ fun WeightTrainingDetailsScreen(
     val scope = rememberCoroutineScope()
 
 
-    // Function to fetch logs dynamically
-    suspend fun fetchLogs() {
-        val fetchedLogs = drillsRepository.getLogsByDrill("WeightTraining", exerciseKey)
-        logs.clear()
-        logs.addAll(fetchedLogs.sortedByDescending {
-            (it["timestamp"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: 0L
-        }) // Sort by latest logs first
+    // Function to listen for log updates in real-time
+    fun listenForLogUpdates() {
+        val logsCollection = FirebaseFirestore.getInstance()
+            .collection("drills")
+            .document("WeightTraining")
+            .collection("logs_${exerciseKey.lowercase()}")
+
+        logsCollection.orderBy(
+            "timestamp",
+            com.google.firebase.firestore.Query.Direction.DESCENDING
+        )
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.e("Firestore", "❌ Error fetching live logs", e)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && !snapshot.isEmpty) {
+                    logs.clear()
+                    logs.addAll(snapshot.documents.mapNotNull { it.data })
+                    Log.d("Firestore", "🔄 Live logs update: $logs")
+                }
+            }
     }
 
-    // Fetch exercise details and logs when the screen loads
+    // Fetch exercise details and start listening for logs when the screen loads
     LaunchedEffect(exerciseKey) {
         scope.launch {
             val allDrills = drillsRepository.getWeightTrainingDrills()
             exerciseDetails = allDrills[exerciseKey]
-            fetchLogs()
+            listenForLogUpdates() // Start real-time updates
         }
     }
+
+    // Group logs by date
+    val groupedLogs = logs.groupBy { log ->
+        val timestamp = log["timestamp"]
+
+        // Check for null or invalid timestamp before formatting
+        if (timestamp == null || timestamp == "Unknown") {
+            Log.e("DateParsing", "⚠️ Skipping log with invalid timestamp: $log")
+            "01-01-1970" // Use a fallback default date
+        } else {
+            drillsRepository.formatTimestampToDateString(timestamp).split(" ")[0]
+        }
+    }
+
+    // Sort logs by date (most recent first)
+    val sortedGroupedLogs = groupedLogs.toSortedMap(compareByDescending { dateString ->
+        SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(dateString)
+    })
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-        .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Log ${exerciseDetails?.name ?: exerciseKey}", style = MaterialTheme.typography.titleLarge)
+        Text(
+            "Log ${exerciseDetails?.name ?: exerciseKey}",
+            style = MaterialTheme.typography.titleLarge
+        )
 
         // Display exercise description
         exerciseDetails?.description?.let { description ->
@@ -485,9 +552,9 @@ fun WeightTrainingDetailsScreen(
                         setNumber = setNumber.toInt(),
                         reps = reps.toInt()
                     )
-                    scope.launch {
-                        fetchLogs()
-                    }
+                    weight = ""
+                    setNumber = ""
+                    reps = "" // Clear input fields
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -502,17 +569,30 @@ fun WeightTrainingDetailsScreen(
         if (logs.isEmpty()) {
             Text("No logs available", style = MaterialTheme.typography.bodyLarge)
         } else {
-            logs.forEachIndexed { index, log ->
-                val logWeight = log["weight"] as? Long ?: 0
-                val logSetNumber = log["setNumber"] as? Long ?: 0
-                val logReps = log["reps"] as? Long ?: 0
-                val timestamp = log["timestamp"]
-                val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                sortedGroupedLogs.forEach { (date, logsForDate) ->
+                    // Light Blue Date Header
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF03A9F4),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
 
-                Text(
-                    text = "Log ${index + 1}: Weight - $logWeight kg, Set Number - $logSetNumber, Reps - $logReps, Date - $formattedDate",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                    logsForDate.forEachIndexed { index, log ->
+                        val logWeight = log["weight"] as? Long ?: 0
+                        val logSetNumber = log["setNumber"] as? Long ?: 0
+                        val logReps = log["reps"] as? Long ?: 0
+                        val timestamp = log["timestamp"]
+                        val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
+
+                        Text(
+                            text = "Log ${index + 1}: Weight - $logWeight kg, Set Number - $logSetNumber, Reps - $logReps, Date - $formattedDate",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp)) // Space between groups
+                }
             }
         }
     }
@@ -580,6 +660,28 @@ fun FitnessDetailsScreen(
         }
     }
 
+    // Group logs by date
+    val groupedLogs = logs.groupBy { log ->
+        val timestamp = log["timestamp"]
+
+        if (timestamp == null || timestamp == "Unknown") {
+            Log.e("DateParsing", "⚠️ Skipping log with invalid timestamp: $log")
+            "01-01-1970" // Use fallback date for invalid entries
+        } else {
+            drillsRepository.formatTimestampToDateString(timestamp).split(" ")[0]
+        }
+    }
+
+    // Sort logs by date (most recent first)
+    val sortedGroupedLogs = groupedLogs.toSortedMap(compareByDescending { dateString ->
+        try {
+            SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).parse(dateString)
+        } catch (e: ParseException) {
+            Log.e("DateParsing", "❌ Failed to parse date: $dateString", e)
+            Date(0) // Push invalid dates to the bottom
+        }
+    })
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -608,13 +710,18 @@ fun FitnessDetailsScreen(
             // Minutes to complete 5K
             TextField(
                 value = minutesCompleted,
-                onValueChange = { minutesCompleted = it.filter { char -> char.isDigit() || char == '.' } },
+                onValueChange = {
+                    minutesCompleted = it.filter { char -> char.isDigit() || char == '.' }
+                },
                 label = { Text("Minutes to complete 5K") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Average Time per KM: $averageTimePerKm min/km", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                "Average Time per KM: $averageTimePerKm min/km",
+                style = MaterialTheme.typography.bodyLarge
+            )
 
             Button(
                 onClick = {
@@ -665,37 +772,49 @@ fun FitnessDetailsScreen(
                     .height(200.dp), // Restrict height for LazyColumn to allow smooth scrolling
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(logs.toList()) { log -> // Convert SnapshotStateList to a standard List
-                    val rounds = log["roundsCompleted"] as? Long ?: 0
-                    val totalTime = log["totalTime"] as? Double ?: 0.0
-                    val avgTimePerKm = log["avgTimePerKm"] as? Double ?: 0.0
-                    val timestamp = log["timestamp"]
-                    val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
+                sortedGroupedLogs.forEach { (date, logsForDate) ->
+                    // Light Blue Date Header
+                    item {
+                        Text(
+                            text = date,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color(0xFF03A9F4),
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
 
-                    if (drillKey == "5k_run") {
-                        Text(
-                            text = "Total Time - ${String.format("%.2f", totalTime)} min, " +
-                                    "Average Time per KM - ${String.format("%.2f", avgTimePerKm)} min/km, Date - $formattedDate",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    } else {
-                        Text(
-                            text = "Rounds Completed - $rounds, Date - $formattedDate",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                    items(logsForDate) { log ->
+                        val rounds = log["roundsCompleted"] as? Long ?: 0
+                        val totalTime = log["totalTime"] as? Double ?: 0.0
+                        val avgTimePerKm = log["avgTimePerKm"] as? Double ?: 0.0
+                        val timestamp = log["timestamp"]
+                        val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
+
+                        if (drillKey == "5k_run") {
+                            Text(
+                                text = "Total Time - ${String.format("%.2f", totalTime)} min, " +
+                                        "Average Time per KM - ${
+                                            String.format(
+                                                "%.2f",
+                                                avgTimePerKm
+                                            )
+                                        } min/km, Date - $formattedDate",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        } else {
+                            Text(
+                                text = "Rounds Completed - $rounds, Date - $formattedDate",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Back Button
-        Button(onClick = { navController.navigate("fitness") }, modifier = Modifier.fillMaxWidth()) {
-            Text("Back to Fitness")
-        }
     }
+
 }
+
 
 // Function to calculate average time per kilometer
 fun calculateAverageTimePerKm(totalMinutes: String): String {
