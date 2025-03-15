@@ -1,7 +1,10 @@
 package com.example.sportify
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -31,6 +34,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.firebase.FirebaseApp
+import com.google.firebase.messaging.FirebaseMessaging
+import data.Drill
+import data.DrillsRepository
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import java.util.Calendar
+
 
 
 // Data Model
@@ -58,9 +77,51 @@ class SportsViewModel : ViewModel() {
     }
 
 }
+
+private fun scheduleDailyWorkoutReminder(context: Context) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val intent = Intent(context, WorkoutReminderReceiver::class.java) // Ensure this matches your receiver class name
+    val pendingIntent = PendingIntent.getBroadcast(
+        context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    val calendar = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 10) // Set time for 10:00 AM
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+    }
+
+    // If the time has already passed today, schedule it for tomorrow
+    if (Calendar.getInstance().after(calendar)) {
+        calendar.add(Calendar.DAY_OF_YEAR, 1)
+    }
+
+    alarmManager.setRepeating(
+        AlarmManager.RTC_WAKEUP,
+        calendar.timeInMillis,
+        AlarmManager.INTERVAL_DAY,
+        pendingIntent
+    )
+}
 class MainActivity : ComponentActivity() {
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        firebaseAnalytics = Firebase.analytics
+
+        FirebaseApp.initializeApp(this)
+
+        // Request notification permission (For Android 13+)
+        requestNotificationPermission()
+
+        // Schedule the daily alarm
+        scheduleDailyWorkoutReminder(this)
+
+        // Subscribe to FCM topic for daily workout reminders
+        subscribeToWorkoutReminders()
+
+        // Get and log the FCM token
+        retrieveFcmToken()
 
         // Check authentication state
         val user = Firebase.auth.currentUser
@@ -83,26 +144,75 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    fun MyApp(userName: String) {
-        val navController = rememberNavController();
-        NavHost(
-            navController = navController,
-            startDestination = "home"
-        ) {
-            composable("home") { HomeScreen(navController, userName = "User") }
-            composable("sports") { SportsScreen(navController) }
-            composable("details/{sportName}")
-            { backStackEntry ->
-                val sportName =
-                    backStackEntry.arguments?.getString("sportName")
-                        ?: "Unknown Sport"
-                DrillActivity(navController, sportName)
+    /**
+     * Request notification permission (Required for Android 13+)
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33) { // API 33+ (Android 13+)
+            val permission = "android.permission.POST_NOTIFICATIONS"
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    permission
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(this, arrayOf(permission), 1)
             }
-            composable("drill/shooting") { ShootingDrillScreen(navController) }
-            composable("drill/3_point_shooting") { ThreePointShootingScreen(navController) }
-            composable("drill/free_throw") { FreeThrowScreen(navController) }
-            composable("drill/off_the_dribble_shots") { OffTheDribbleScreen(navController) }
+        }
+    }
+
+    /**
+     * Subscribe to the "workout_reminders" topic
+     */
+    private fun subscribeToWorkoutReminders() {
+        FirebaseMessaging.getInstance().subscribeToTopic("workout_reminders")
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("FCM", "✅ Successfully subscribed to 'workout_reminders' topic")
+                } else {
+                    Log.e("FCM", "❌ Failed to subscribe to topic", task.exception)
+                }
+            }
+    }
+
+    /**
+     * Retrieve and log the Firebase Cloud Messaging (FCM) token
+     */
+    private fun retrieveFcmToken() {
+        FirebaseMessaging.getInstance().token
+            .addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.e("FCM", "❌ Failed to get FCM token", task.exception)
+                    return@addOnCompleteListener
+                }
+                // Get the new token
+                val token = task.result
+                Log.d("FCM", "🔑 FCM Token: $token")
+
+                // Here, you could send the token to your backend if needed
+            }
+    }
+
+    @Preview(showBackground = true)
+    @Composable
+    fun GreetingPreview() {
+        SportifyTheme {
+            HomeScreen(rememberNavController(), "Sportify")
+        }
+    }
+
+    @Composable
+    fun HomeScreen(navController: NavHostController, userName: String) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(text = "Welcome to Sportify, $userName!")
+            Button(onClick = { navController.navigate("sports") }) {
+                Text("Go to Sports")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            LogoutScreen()
         }
     }
 
@@ -119,7 +229,9 @@ class MainActivity : ComponentActivity() {
         ) {
             sports.forEach { sport ->
                 SportCard(sport) {
-                    navController.navigate("details/${sport.name}")
+                    navController.navigate("details/${sport.name}") {
+                        Log.d("Navigation", "Navigating to details/${sport.name}")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -160,45 +272,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-    @Composable
-    fun SportDetailsScreen(sportName: String) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = sportName, style = MaterialTheme.typography.titleLarge)
-            ////////////// Add more details here /////////////////////////
-        }
-    }
-
-    @Composable
-    fun HomeScreen(navController: NavHostController, userName: String) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = "Welcome to Sportify, $userName!")
-            Button(onClick = { navController.navigate("sports") }) {
-                Text("Go to Sports")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            LogoutScreen()
-        }
-    }
-
-    @Preview(showBackground = true)
-    @Composable
-    fun GreetingPreview() {
-        SportifyTheme {
-            HomeScreen(rememberNavController(), "Sportify")
-        }
-    }
-
     @Composable
     fun LogoutScreen() {
         // Retrieve the context in a valid composable scope
@@ -221,4 +294,91 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun MyApp(userName: String) {
+        val navController = rememberNavController();
+        NavHost(
+            navController = navController,
+            startDestination = "home"
+        ) {
+            composable("home") { HomeScreen(navController, userName) }
+            composable("sports") { SportsScreen(navController) }
+            composable("details/{sportName}") { backStackEntry ->
+                val sportName = backStackEntry.arguments?.getString("sportName") ?: "Unknown"
+                DrillActivity(navController, sportName, DrillsRepository())
+            }
+            composable("basketballDrills") { BasketballDrillScreen(navController) }
+            composable("drillsList/{sportName}") { backStackEntry ->
+                val sportName = backStackEntry.arguments?.getString("sportName") ?: ""
+                val drillsRepository = DrillsRepository()
+                val drills = remember { mutableStateOf<Map<String, Drill>>(emptyMap()) }
+
+                // Fetch drills dynamically for the given sport
+                LaunchedEffect(sportName) {
+                    drills.value = drillsRepository.getDrillsBySport(sportName)
+                }
+
+                // Pass the fetched drills to DrillsListScreen
+                DrillsListScreen(
+                    drills = drills.value,
+                    navController = navController
+                )
+            }
+
+            composable("shootingDrills") { ShootingDrillScreen(navController) }
+            composable("drillDetails/{drillKey}")
+            { backStackEntry ->
+                val drillKey = backStackEntry.arguments?.getString("drillKey") ?: "Unknown"
+                val drillsRepository = DrillsRepository()
+                val drillState = remember { mutableStateOf<Drill?>(null) }
+
+                LaunchedEffect(drillKey) {
+                    if (drillKey != "Unknown") {
+                        val drills = drillsRepository.getDrillsBySport("Basketball")
+                        drillState.value = drills[drillKey]
+                    }
+                }
+                drillState.value?.let { drill ->
+                    DrillDetailsScreen(
+                        navController = navController,
+                        drillKey = drillKey,
+                        drill = drill,
+                        drillsRepository = drillsRepository,
+                        sportName = "Basketball"
+                    )
+                }
+            }
+
+            composable("tennisDrills") { TennisDrillScreen(navController) }
+
+            composable("footballDrills") { FootballDrillScreen(navController) }
+
+            composable("weightTraining") {
+                WeightTrainingScreen(
+                    navController = navController,
+                    drillsRepository = DrillsRepository()
+                )
+            }
+            composable("weightTrainingDetails/{exerciseKey}") { backStackEntry ->
+                val exerciseKey = backStackEntry.arguments?.getString("exerciseKey") ?: ""
+                WeightTrainingDetailsScreen(
+                    navController = navController,
+                    exerciseKey = exerciseKey,
+                    drillsRepository = DrillsRepository()
+                )
+            }
+
+            composable("fitness") {
+                FitnessScreen(navController = navController, drillsRepository = DrillsRepository())
+            }
+            composable("fitnessDetails/{drillKey}") { backStackEntry ->
+                val drillKey = backStackEntry.arguments?.getString("drillKey") ?: ""
+                FitnessDetailsScreen(
+                    navController = navController,
+                    drillKey = drillKey,
+                    drillsRepository = DrillsRepository()
+                )
+            }
+        }
+    }
 }
