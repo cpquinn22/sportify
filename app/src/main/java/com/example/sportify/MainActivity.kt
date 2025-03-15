@@ -46,6 +46,8 @@ import data.DrillsRepository
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
 import java.util.Calendar
 
 
@@ -102,8 +104,10 @@ private fun scheduleDailyWorkoutReminder(context: Context) {
     )
 }
 class MainActivity : ComponentActivity() {
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        firebaseAnalytics = Firebase.analytics
 
         FirebaseApp.initializeApp(this)
 
