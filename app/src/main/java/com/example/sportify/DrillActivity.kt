@@ -32,6 +32,10 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.analytics.ktx.logEvent
 
 
 @Composable
@@ -142,6 +146,8 @@ fun DrillDetailsScreen(
         val fetchedLogs = repository.getLogsByDrill(sportName, drillName)
         logs.clear()
         logs.addAll(fetchedLogs)
+
+        Log.d("Firestore", "Fetched logs for $drillKey: $fetchedLogs")
     }
 
     LaunchedEffect(drillName) {
@@ -255,6 +261,15 @@ fun calculatePercentage(shots: String, totalShots: Int): Int {
 
 @Composable
 fun BasketballDrillScreen(navController: NavHostController) {
+    val analytics = Firebase.analytics // Get Firebase Analytics instance
+
+    // Log screen visit event
+    LaunchedEffect(Unit) {
+        analytics.logEvent("sport_selected") {
+            param("sport_name", "Basketball")
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -326,6 +341,15 @@ fun ShootingDrillScreen(navController: NavHostController) {
 
 @Composable
 fun TennisDrillScreen(navController: NavHostController) {
+    val analytics = Firebase.analytics // Get Firebase Analytics instance
+
+    // Log screen visit event
+    LaunchedEffect(Unit) {
+        analytics.logEvent("sport_selected") {
+            param("sport_name", "Tennis")
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -351,6 +375,15 @@ fun TennisDrillScreen(navController: NavHostController) {
 
 @Composable
 fun FootballDrillScreen(navController: NavHostController) {
+    val analytics = Firebase.analytics // Get Firebase Analytics instance
+
+    // Log screen visit event
+    LaunchedEffect(Unit) {
+        analytics.logEvent("sport_selected") {
+            param("sport_name", "Football")
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
