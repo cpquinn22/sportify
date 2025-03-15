@@ -1,5 +1,6 @@
 package com.example.sportify
 
+import ViewModels.TeamViewModel
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -46,9 +47,10 @@ import data.DrillsRepository
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
+import androidx.activity.viewModels
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
-import java.util.Calendar
+import java.util.Calendar;
 
 
 
@@ -105,6 +107,8 @@ private fun scheduleDailyWorkoutReminder(context: Context) {
 }
 class MainActivity : ComponentActivity() {
     private lateinit var firebaseAnalytics: FirebaseAnalytics
+    private val teamViewModel: TeamViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         firebaseAnalytics = Firebase.analytics
@@ -200,99 +204,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    fun HomeScreen(navController: NavHostController, userName: String) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = "Welcome to Sportify, $userName!")
-            Button(onClick = { navController.navigate("sports") }) {
-                Text("Go to Sports")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            LogoutScreen()
-        }
-    }
-
-    @Composable
-    fun SportsScreen(navController: NavHostController, viewModel: SportsViewModel = viewModel()) {
-        val sports by viewModel.sports.collectAsState()
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            sports.forEach { sport ->
-                SportCard(sport) {
-                    navController.navigate("details/${sport.name}") {
-                        Log.d("Navigation", "Navigating to details/${sport.name}")
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { navController.navigate("home") }) {
-                Text("Back to Home Screen")
-            }
-        }
-    }
-
-    @Composable
-    fun SportCard(sport: Sport, onClick: () -> Unit) {
-        androidx.compose.material3.Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-                .clickable { onClick() },
-            elevation = androidx.compose.material3.CardDefaults.cardElevation(4.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.res.painterResource(id = sport.imageResId),
-                    contentDescription = sport.name,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(text = sport.name, style = MaterialTheme.typography.titleLarge)
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun LogoutScreen() {
-        // Retrieve the context in a valid composable scope
-        val context = LocalContext.current
-
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
-        ) {
-            Text(text = "You are signed in!")
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = {
-                Firebase.auth.signOut()
-                context.startActivity(Intent(context, MainActivity::class.java))
-                (context as ComponentActivity).finish()
-            }) {
-                Text("Log Out")
-            }
-        }
-    }
 
     @Composable
     fun MyApp(userName: String) {
@@ -303,6 +214,7 @@ class MainActivity : ComponentActivity() {
         ) {
             composable("home") { HomeScreen(navController, userName) }
             composable("sports") { SportsScreen(navController) }
+            Firebase.auth.currentUser?.let { it1 ->  composable("createTeam") { TeamScreen(navController, teamViewModel, it1.uid) } }
             composable("details/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: "Unknown"
                 DrillActivity(navController, sportName, DrillsRepository())
