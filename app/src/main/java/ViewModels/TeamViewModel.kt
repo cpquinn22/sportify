@@ -1,5 +1,6 @@
 package ViewModels
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapp.data.TeamRepository
@@ -26,10 +27,33 @@ class TeamViewModel : ViewModel() {
         }
     }
 
-    fun fetchUserTeams(userId: String) {
+    fun fetchUserTeams(firebaseUid: String?) {
         viewModelScope.launch {
-            val teams = repository.getUserTeams(userId)
-            _userTeams.value = teams
+            val userDocId = firebaseUid // Because now Firebase UID is your document ID
+
+            if (userDocId != null) {
+                val teamIds = repository.getUserTeams(userDocId)
+                Log.d("FirestoreDebug", "Fetched team IDs: $teamIds")
+
+                val teamNames = mutableListOf<String>()
+                for (teamId in teamIds) {
+                    val name = repository.getTeamNameById(teamId)
+                    if (name != null) teamNames.add(name)
+                }
+
+                _userTeams.value = teamNames
+                Log.d("FirestoreDebug", "Final teamNames list: $teamNames")
+            }
+        }
+    }
+
+    private val _isAdmin = MutableStateFlow(false)
+    val isAdmin: StateFlow<Boolean> = _isAdmin
+
+    fun fetchAdminStatus(userId: String) {
+        viewModelScope.launch {
+            _isAdmin.value = repository.isUserAdmin(userId)
+            Log.d("AuthDebug", "Admin status: ${_isAdmin.value}")
         }
     }
 

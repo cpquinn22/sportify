@@ -30,12 +30,13 @@ class AuthActivity : ComponentActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
-            // Handle successful sign-in
             val user = Firebase.auth.currentUser
-            Log.d("AuthActivity", "Sign-in successful: ${user?.email}")
+            Log.d("AuthActivity", "✅ Sign-in successful: ${user?.email}")
+
+            saveUserToFirestore() // ✅ MOVE IT HERE!
             navigateToMain()
         } else {
-            Log.e("AuthActivity", "Sign-in failed")
+            Log.e("AuthActivity", "❌ Sign-in failed")
         }
     }
 
@@ -60,7 +61,6 @@ class AuthActivity : ComponentActivity() {
     }
 
     private fun navigateToMain() {
-        saveUserToFirestore() // save user data to firestore
         startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
@@ -89,8 +89,10 @@ class AuthActivity : ComponentActivity() {
         var isUnique: Boolean
 
         // Extract initials
-        val initials = displayName?.split(" ")?.joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
-            ?: email?.split("@")?.firstOrNull()?.take(2)?.uppercase() // Default to first 2 letters of email if no displayName
+        val initials =
+            displayName?.split(" ")?.joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
+                ?: email?.split("@")?.firstOrNull()?.take(2)
+                    ?.uppercase() // Default to first 2 letters of email if no displayName
 
         do {
             // Generate a random 8-digit number
@@ -108,63 +110,56 @@ class AuthActivity : ComponentActivity() {
     fun saveUserToFirestore() {
         val firebaseUser = FirebaseAuth.getInstance().currentUser
         if (firebaseUser != null) {
+            Log.d("FirestoreDebug", "🛠️ saveUserToFirestore() called for ${firebaseUser.email}")
+
             val db = FirebaseFirestore.getInstance()
             val usersCollection = db.collection("users")
 
-            // check if the email already exists in the database
-            usersCollection.whereEqualTo("email", firebaseUser.email).get()
-                .addOnSuccessListener { querySnapshot ->
-                    if (querySnapshot.isEmpty) {
-                        // Email does not exist: create a new user
-                        kotlinx.coroutines.GlobalScope.launch {
-                            val customUid = generateUniqueCustomUid(firebaseUser.displayName, firebaseUser.email)
-                            val userData = mapOf(
-                                "uid" to customUid,
-                                "name" to (firebaseUser.displayName ?: "Anonymous"),
-                                "email" to (firebaseUser.email ?: ""),
-                                "photoUrl" to (firebaseUser.photoUrl?.toString() ?: ""),
-                                "isAdmin" to false // default to false
-                            )
+            val firebaseUid = firebaseUser.uid
+            val email = firebaseUser.email ?: ""
+            val name = firebaseUser.displayName ?: "Anonymous"
 
-                db.collection("users").document(customUid)
-                    .set(userData)
-                    .addOnSuccessListener {
-                        Log.d("Firestore", "User data successfully written!")
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("Firestore", "Error writing user data", e)
-                    }
-            }
-
-                    } else {
-                        // Email exists: update the existing user's data
-                        val existingUserDocument = querySnapshot.documents[0]
-                        val existingUid = existingUserDocument.id
-
-                        val updatedData = mapOf(
-                            "name" to (firebaseUser.displayName ?: existingUserDocument.getString("name")),
-                            "photoUrl" to (firebaseUser.photoUrl?.toString()
-                                ?: existingUserDocument.getString("photoUrl"))
+            usersCollection.document(firebaseUid).get()
+                .addOnSuccessListener { documentSnapshot ->
+                    if (!documentSnapshot.exists()) {
+                        val userData = mapOf(
+                            "authUid" to firebaseUid,
+                            "name" to name,
+                            "email" to email,
+                            "isAdmin" to false,
+                            "teams" to listOf<String>(),
+                            "adminTeams" to listOf<String>()
                         )
 
-                        db.collection("users").document(existingUid)
-                            .update(updatedData)
+                        usersCollection.document(firebaseUid)
+                            .set(userData)
                             .addOnSuccessListener {
-                                Log.d("Firestore", "Existing user data successfully updated!")
+                                Log.d("Firestore", "✅ New user created with UID: $firebaseUid")
                             }
                             .addOnFailureListener { e ->
-                                Log.e("Firestore", "Error updating existing user data", e)
+                                Log.e("Firestore", "❌ Failed to create user", e)
+                            }
+                    } else {
+                        // Optionally update their name if needed
+                        val updatedData = mapOf("name" to name)
+
+                        usersCollection.document(firebaseUid)
+                            .update(updatedData)
+                            .addOnSuccessListener {
+                                Log.d("Firestore", "✅ Existing user updated: $firebaseUid")
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("Firestore", "❌ Failed to update user", e)
                             }
                     }
                 }
                 .addOnFailureListener { e ->
-                    Log.e("Firestore", "Error checking if email exists in Firestore", e)
+                    Log.e("Firestore", "❌ Failed to fetch user doc", e)
                 }
         } else {
-            Log.e("Firestore", "No authenticated user found")
+            Log.e("Firestore", "❌ No authenticated Firebase user found")
         }
     }
-}
 
 
     @Composable
@@ -181,4 +176,5 @@ class AuthActivity : ComponentActivity() {
             }
         }
     }
+}
 

@@ -1,5 +1,6 @@
 package com.example.sportify
 
+import ViewModels.TeamViewModel
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -19,7 +23,18 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 @Composable
-fun HomeScreen(navController: NavHostController, userName: String) {
+fun HomeScreen(navController: NavHostController,
+               userName: String,
+               viewModel: TeamViewModel
+) {
+    val userId = Firebase.auth.currentUser?.uid
+    val isAdmin by viewModel.isAdmin.collectAsState()
+
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            viewModel.fetchAdminStatus(userId)
+        }
+    }
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -29,8 +44,13 @@ fun HomeScreen(navController: NavHostController, userName: String) {
         Button(onClick = { navController.navigate("sports") }) {
             Text("Go to Sports")
         }
-        Button(onClick = { navController.navigate("createTeam") }) {
-            Text("Create a team")
+        if (isAdmin) {
+            Button(onClick = { navController.navigate("createTeam") }) {
+                Text("Create a team")
+            }
+        }
+        Button(onClick = { navController.navigate("myTeams") }) {
+            Text("My Teams")
         }
         Spacer(modifier = Modifier.height(16.dp))
         LogoutScreen()

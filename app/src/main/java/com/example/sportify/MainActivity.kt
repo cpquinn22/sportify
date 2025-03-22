@@ -48,6 +48,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import androidx.activity.viewModels
+import com.example.myapp.data.TeamRepository
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import java.util.Calendar;
@@ -196,13 +197,24 @@ class MainActivity : ComponentActivity() {
             }
     }
 
-    @Preview(showBackground = true)
-    @Composable
-    fun GreetingPreview() {
-        SportifyTheme {
-            HomeScreen(rememberNavController(), "Sportify")
-        }
-    }
+//    @Preview(showBackground = true)
+  //  @Composable
+    //fun GreetingPreview() {
+      //  SportifyTheme {
+        //    val dummyViewModel = TeamViewModel(TeamRepository()) // or use a fake if needed
+          //  HomeScreen(
+            //    navController = rememberNavController(),
+              //  userName = "Sportify",
+                //viewModel = dummyViewModel
+            //)
+        //}
+    //}
+
+
+  //****************************
+    //****************************  Keep this out?
+    //****************************
+    //****************************
 
 
     @Composable
@@ -212,9 +224,16 @@ class MainActivity : ComponentActivity() {
             navController = navController,
             startDestination = "home"
         ) {
-            composable("home") { HomeScreen(navController, userName) }
+            composable("home") {
+                val viewModel: TeamViewModel = viewModel() // or hiltViewModel() if using Hilt
+                HomeScreen(navController, userName, viewModel)
+            }
             composable("sports") { SportsScreen(navController) }
-            Firebase.auth.currentUser?.let { it1 ->  composable("createTeam") { TeamScreen(navController, teamViewModel, it1.uid) } }
+            Firebase.auth.currentUser?.let { it1 ->  composable("createTeam") { CreateTeamScreen(navController, teamViewModel, it1.uid) } }
+            composable("myTeams") {
+                MyTeamsScreen(viewModel = teamViewModel, userId = Firebase.auth.currentUser?.uid ?: "", navController = navController)
+            }
+            Log.d("UserCheck", "Current user UID: ${Firebase.auth.currentUser?.uid}")
             composable("details/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: "Unknown"
                 DrillActivity(navController, sportName, DrillsRepository())

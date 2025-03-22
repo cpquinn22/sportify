@@ -3,8 +3,6 @@ package com.example.sportify
 import ViewModels.TeamViewModel
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
@@ -17,13 +15,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 
 @Composable
-fun TeamScreen(navController: NavController, viewModel: TeamViewModel, userId: String) {
+fun CreateTeamScreen(navController: NavController, viewModel: TeamViewModel, userId: String) {
     var teamName by remember { mutableStateOf("") }
     var selectedSport by remember { mutableStateOf("") }
     var sportsList by remember { mutableStateOf<List<String>>(emptyList()) }
