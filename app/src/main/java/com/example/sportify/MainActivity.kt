@@ -51,6 +51,7 @@ import androidx.activity.viewModels
 import com.example.myapp.data.TeamRepository
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.auth.FirebaseAuth
 import java.util.Calendar;
 
 
@@ -237,6 +238,18 @@ class MainActivity : ComponentActivity() {
             composable("details/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: "Unknown"
                 DrillActivity(navController, sportName, DrillsRepository())
+            }
+            composable("team/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                val viewModel: TeamViewModel = viewModel()
+
+                TeamScreen(
+                    teamId = teamId,
+                    userId = userId,
+                    navController = navController,
+                    viewModel = viewModel
+                )
             }
             composable("basketballDrills") { BasketballDrillScreen(navController) }
             composable("drillsList/{sportName}") { backStackEntry ->

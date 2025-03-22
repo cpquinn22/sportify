@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.tasks.await
+import model.Team
 
 class TeamRepository {
 
@@ -147,6 +148,36 @@ class TeamRepository {
             snapshot.documents.firstOrNull()?.id
         } catch (e: Exception) {
             Log.e("FirestoreDebug", "❌ Failed to query user by UID: $uid", e)
+            null
+        }
+    }
+
+    suspend fun getTeamById(teamId: String): Team? {
+        return try {
+            val snapshot = FirebaseFirestore.getInstance()
+                .collection("teams")
+                .document(teamId)
+                .get()
+                .await()
+
+            Log.d("TeamDebug", "📄 Document snapshot: ${snapshot.data}")
+
+            snapshot.toObject(Team::class.java)?.copy(id = snapshot.id)
+        } catch (e: Exception) {
+            Log.e("TeamDebug", "❌ Error fetching team: $e")
+            null
+        }
+    }
+
+    suspend fun getTeamIdByName(name: String): String? {
+        return try {
+            val snapshot = FirebaseFirestore.getInstance()
+                .collection("teams")
+                .whereEqualTo("name", name)
+                .get()
+                .await()
+            snapshot.documents.firstOrNull()?.id
+        } catch (e: Exception) {
             null
         }
     }

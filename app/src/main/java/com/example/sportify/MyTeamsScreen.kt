@@ -36,7 +36,6 @@ fun MyTeamsScreen(viewModel: TeamViewModel, userId: String, navController: NavHo
         }
     }
 
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -46,26 +45,27 @@ fun MyTeamsScreen(viewModel: TeamViewModel, userId: String, navController: NavHo
     ) {
         Text("My Teams", style = MaterialTheme.typography.titleLarge)
 
-        if (teams.isEmpty()) {
+        val teamMap by viewModel.userTeams.collectAsState()
+
+        if (teamMap.isEmpty()) {
             Text("You are not part of any teams.")
         } else {
-            teams.forEach { teamId ->
+            teamMap.forEach { (teamId, teamName) ->
                 Button(
                     onClick = {
-                        // Navigate to team details screen
-                        navController.navigate("teamDetails/$teamId")
+                        navController.navigate("team/$teamId")
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Team ID: $teamId") // You can fetch full team names in future
+                    Text("Team: $teamName")
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { navController.navigate("home") }) {
-            Text("Back to Home")
+            Button(onClick = { navController.navigate("home") }) {
+                Text("Back to Home")
+            }
         }
     }
-}

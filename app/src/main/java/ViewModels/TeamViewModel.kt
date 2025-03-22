@@ -7,13 +7,17 @@ import com.example.myapp.data.TeamRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import model.Team
 
 class TeamViewModel : ViewModel() {
 
     private val repository = TeamRepository() // No need for factory!
 
-    private val _userTeams = MutableStateFlow<List<String>>(emptyList())
-    val userTeams: StateFlow<List<String>> = _userTeams
+    private val _userTeams = MutableStateFlow<Map<String, String>>(emptyMap())
+    val userTeams: StateFlow<Map<String, String>> = _userTeams
+
+    private val _selectedTeam = MutableStateFlow<Team?>(null)
+    val selectedTeam: StateFlow<Team?> = _selectedTeam
 
     fun createTeam(teamName: String, selectedSport: String, userId: String) {
         viewModelScope.launch {
@@ -21,28 +25,42 @@ class TeamViewModel : ViewModel() {
         }
     }
 
+    fun loadTeamDetails(teamId: String) {
+        viewModelScope.launch {
+            Log.d("TeamDebug", "🔍 Loading team details for ID: $teamId")
+            val team = repository.getTeamById(teamId)
+            Log.d("TeamDebug", "📦 Loaded team object: $team")
+            _selectedTeam.value = team
+        }
+    }
     fun joinTeam(userId: String, teamCode: String) {
         viewModelScope.launch {
             repository.joinTeam(userId, teamCode)
         }
     }
 
+    suspend fun getTeamIdByName(name: String): String? {
+        return repository.getTeamIdByName(name)
+    }
+
     fun fetchUserTeams(firebaseUid: String?) {
         viewModelScope.launch {
-            val userDocId = firebaseUid // Because now Firebase UID is your document ID
+            val userDocId = firebaseUid
 
             if (userDocId != null) {
                 val teamIds = repository.getUserTeams(userDocId)
                 Log.d("FirestoreDebug", "Fetched team IDs: $teamIds")
 
-                val teamNames = mutableListOf<String>()
+                val teamMap = mutableMapOf<String, String>()
                 for (teamId in teamIds) {
                     val name = repository.getTeamNameById(teamId)
-                    if (name != null) teamNames.add(name)
+                    if (name != null) {
+                        teamMap[teamId] = name
+                    }
                 }
 
-                _userTeams.value = teamNames
-                Log.d("FirestoreDebug", "Final teamNames list: $teamNames")
+                _userTeams.value = teamMap // key = id, value = name
+                Log.d("FirestoreDebug", "Final team map: $teamMap")
             }
         }
     }
