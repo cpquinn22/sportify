@@ -5,6 +5,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.tasks.await
 import model.Team
+import model.Workout
 
 class TeamRepository {
 
@@ -180,6 +181,22 @@ class TeamRepository {
         } catch (e: Exception) {
             null
         }
+    }
+
+    suspend fun saveWorkout(teamId: String, workout: Workout) {
+        val db = FirebaseFirestore.getInstance()
+        val workoutRef = db.collection("teams")
+            .document(teamId)
+            .collection("workouts")
+            .document()
+
+        val workoutMap = mapOf(
+            "name" to workout.name,
+            "info" to workout.info,
+            "steps" to workout.steps
+        )
+
+        workoutRef.set(workoutMap).await()
     }
 
     // Generate a random unique team code

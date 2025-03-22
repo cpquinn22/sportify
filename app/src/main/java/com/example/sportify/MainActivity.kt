@@ -48,6 +48,8 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import androidx.activity.viewModels
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.myapp.data.TeamRepository
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
@@ -249,6 +251,17 @@ class MainActivity : ComponentActivity() {
                     userId = userId,
                     navController = navController,
                     viewModel = viewModel
+                )
+            }
+            composable(
+                route = "createWorkout/{teamId}",
+                arguments = listOf(navArgument("teamId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                CreateWorkoutScreen(
+                    teamId = teamId,
+                    viewModel = viewModel(),
+                    onWorkoutCreated = { navController.popBackStack() }
                 )
             }
             composable("basketballDrills") { BasketballDrillScreen(navController) }

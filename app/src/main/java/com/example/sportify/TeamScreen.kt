@@ -36,7 +36,9 @@ fun TeamScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (team.adminId == userId) {
-                Button(onClick = { /* TODO: Navigate to CreateWorkout */ }) {
+                Button(onClick = {
+                    navController.navigate("createWorkout/$teamId")
+                }) {
                     Text("Create Workout")
                 }
                 Button(onClick = { /* TODO: Navigate to CreateMatch */ }) {

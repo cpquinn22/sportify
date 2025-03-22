@@ -4,10 +4,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapp.data.TeamRepository
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import model.Team
+import model.Workout
 
 class TeamViewModel : ViewModel() {
 
@@ -77,5 +79,32 @@ class TeamViewModel : ViewModel() {
 
     suspend fun getSportsList(): List<String> {
         return repository.getSportsList()
+    }
+
+    fun createWorkout(teamId: String, workout: Workout) {
+        viewModelScope.launch {
+            try {
+                repository.saveWorkout(teamId, workout)
+                Log.d("WorkoutDebug", "✅ Workout saved successfully for team $teamId")
+            } catch (e: Exception) {
+                Log.e("WorkoutDebug", "❌ Error saving workout", e)
+            }
+        }
+    }
+
+    fun saveWorkoutToFirestore(teamId: String, workout: Workout) {
+        val db = FirebaseFirestore.getInstance()
+        val workoutRef = db.collection("teams")
+            .document(teamId)
+            .collection("workouts")
+            .document()
+
+        workoutRef.set(workout)
+            .addOnSuccessListener {
+                Log.d("WorkoutSave", "Workout saved successfully!")
+            }
+            .addOnFailureListener { e ->
+                Log.e("WorkoutSave", "Error saving workout", e)
+            }
     }
 }
