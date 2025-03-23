@@ -4,10 +4,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapp.data.TeamRepository
+import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import model.Team
 import model.Workout
 
@@ -107,4 +110,89 @@ class TeamViewModel : ViewModel() {
                 Log.e("WorkoutSave", "Error saving workout", e)
             }
     }
+    suspend fun loadWorkout(teamId: String, workoutId: String): Workout? {
+        return try {
+            val doc = Firebase.firestore
+                .collection("teams")
+                .document(teamId)
+                .collection("workouts")
+                .document(workoutId)
+                .get()
+                .await()
+
+            doc.toObject(Workout::class.java)
+        } catch (e: Exception) {
+            Log.e("WorkoutLog", "Error loading workout: ", e)
+            null
+        }
+    }
+
+    fun saveWorkoutLog(
+        teamId: String,
+        workoutId: String,
+        logData: Map<String, String>,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val logRef = Firebase.firestore
+            .collection("teams")
+            .document(teamId)
+            .collection("workouts")
+            .document(workoutId)
+            .collection("logs")
+            .document()
+
+        Log.d("WorkoutLog", "Saving log: $logData") // Add this
+
+        Log.d("WorkoutLog", "Saving log: $logData") // Add this
+
+        logRef.set(logData)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e ->
+                Log.e("WorkoutLog", "Error saving log", e) // Add this
+                onError(e)
+            }
+    }
+
+    private val _teamWorkouts = MutableStateFlow<List<Pair<String, Workout>>>(emptyList())
+    val teamWorkouts: StateFlow<List<Pair<String, Workout>>> = _teamWorkouts
+
+    fun fetchTeamWorkouts(teamId: String) {
+        Firebase.firestore.collection("teams")
+            .document(teamId)
+            .collection("workouts")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val workouts = snapshot.documents.mapNotNull { doc ->
+                    val workout = doc.toObject(Workout::class.java)
+                    if (workout != null) {
+                        workout.id = doc.id  // Inject ID into the object
+                        doc.id to workout     // Return Pair<String, Workout>
+                    } else null
+                }
+                _teamWorkouts.value = workouts // List<Pair<String, Workout>>
+            }
+            .addOnFailureListener { e ->
+                Log.e("TeamScreen", "Error fetching workouts", e)
+            }
+    }
+
+    suspend fun loadWorkoutLogs(teamId: String, workoutId: String): List<Map<String, String>> {
+        return try {
+            val snapshot = Firebase.firestore
+                .collection("teams")
+                .document(teamId)
+                .collection("workouts")
+                .document(workoutId)
+                .collection("logs")
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { it.data as? Map<String, String> }
+        } catch (e: Exception) {
+            Log.e("WorkoutLogViewer", "Error loading workout logs", e)
+            emptyList()
+        }
+    }
+
 }

@@ -18,6 +18,10 @@ import model.Workout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -28,15 +32,16 @@ fun CreateWorkoutScreen(
     teamId: String,
     viewModel: TeamViewModel,
     onWorkoutCreated: () -> Unit
-)
-    {
+) {
     var name by remember { mutableStateOf("") }
     var info by remember { mutableStateOf("") }
-        val steps = remember { mutableStateListOf("") }
+    val steps = remember { mutableStateListOf("") }
+    val stepLogTypes = remember { mutableStateListOf("None") } // Matches steps by index
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Create New Workout", style = MaterialTheme.typography.titleLarge)
@@ -56,22 +61,41 @@ fun CreateWorkoutScreen(
         )
 
         steps.forEachIndexed { index, step ->
-            OutlinedTextField(
-                value = step,
-                onValueChange = { newValue ->
-                    steps[index] = newValue
-                },
-                label = { Text("Step ${index + 1}") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column {
+                OutlinedTextField(
+                    value = step,
+                    onValueChange = { newValue -> steps[index] = newValue },
+                    label = { Text("Step ${index + 1}") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                var expanded by remember { mutableStateOf(false) }
+                val options = listOf("None", "Weight Training", "Running", "Shooting")
+
+                Box {
+                    OutlinedButton(onClick = { expanded = true }) {
+                        Text("Log Type: ${stepLogTypes[index]}")
+                    }
+
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        options.forEach { selection ->
+                            DropdownMenuItem(
+                                text = { Text(selection) },
+                                onClick = {
+                                    stepLogTypes[index] = selection
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        Button(
-            onClick = {
-                steps.add("")
-            },
-            Modifier.align(Alignment.End)
-        ) {
+        Button(onClick = {
+            steps.add("")
+            stepLogTypes.add("None")
+        }, modifier = Modifier.align(Alignment.End)) {
             Text("Add Step")
         }
 
@@ -81,10 +105,11 @@ fun CreateWorkoutScreen(
                     val workout = Workout(
                         name = name,
                         info = info,
-                        steps = steps.mapIndexed { index, step -> "step_${index + 1}" to step }.toMap()
+                        steps = steps.mapIndexed { i, step -> "step_${i + 1}" to step }.toMap(),
+                        logTypes = steps.mapIndexed { i, _ -> "step_${i + 1}" to stepLogTypes[i] }.toMap()
                     )
                     viewModel.saveWorkoutToFirestore(teamId, workout)
-                    onWorkoutCreated() // Navigate back or show confirmation
+                    onWorkoutCreated()
                 }
             },
             modifier = Modifier.fillMaxWidth()

@@ -18,9 +18,11 @@ fun TeamScreen(
     viewModel: TeamViewModel
 ) {
     val teamDetails by viewModel.selectedTeam.collectAsState()
+    val workouts by viewModel.teamWorkouts.collectAsState(emptyList())
 
     LaunchedEffect(teamId) {
         viewModel.loadTeamDetails(teamId)
+        viewModel.fetchTeamWorkouts(teamId)
     }
 
     Column(
@@ -32,7 +34,6 @@ fun TeamScreen(
         teamDetails?.let { team ->
             Text("Team: ${team.name}", style = MaterialTheme.typography.headlineMedium)
             Text("Sport: ${team.sport}")
-
             Spacer(modifier = Modifier.height(16.dp))
 
             if (team.adminId == userId) {
@@ -47,9 +48,19 @@ fun TeamScreen(
                 Button(onClick = { /* TODO: Navigate to CreateEvent */ }) {
                     Text("Create Event")
                 }
-            } else {
-                Text("You are a team member.")
+                Spacer(modifier = Modifier.height(16.dp))
             }
-        } ?: Text("Loading team...")
-    }
-}
+
+            Button(
+                onClick = {
+                    navController.navigate("workoutList/$teamId")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text("Available Workouts")
+            }
+                }
+            }
+        }
