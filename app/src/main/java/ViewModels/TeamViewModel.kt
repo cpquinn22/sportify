@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapp.data.TeamRepository
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -139,20 +141,17 @@ class TeamViewModel : ViewModel() {
             .document(teamId)
             .collection("workouts")
             .document(workoutId)
-            .collection("logs")
+            .collection("allLogs") // use flat structure
             .document()
-
-        Log.d("WorkoutLog", "Saving log: $logData") // Add this
-
-        Log.d("WorkoutLog", "Saving log: $logData") // Add this
 
         logRef.set(logData)
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { e ->
-                Log.e("WorkoutLog", "Error saving log", e) // Add this
+                Log.e("WorkoutLog", "Error saving log", e)
                 onError(e)
             }
     }
+
 
     private val _teamWorkouts = MutableStateFlow<List<Pair<String, Workout>>>(emptyList())
     val teamWorkouts: StateFlow<List<Pair<String, Workout>>> = _teamWorkouts
@@ -179,18 +178,41 @@ class TeamViewModel : ViewModel() {
 
     suspend fun loadWorkoutLogs(teamId: String, workoutId: String): List<Map<String, String>> {
         return try {
+            val userId = Firebase.auth.currentUser?.uid ?: return emptyList()
+
             val snapshot = Firebase.firestore
                 .collection("teams")
                 .document(teamId)
                 .collection("workouts")
                 .document(workoutId)
-                .collection("logs")
+                .collection("allLogs")
+                .whereEqualTo("userId", FirebaseAuth.getInstance().currentUser?.uid)
                 .get()
                 .await()
 
             snapshot.documents.mapNotNull { it.data as? Map<String, String> }
         } catch (e: Exception) {
             Log.e("WorkoutLogViewer", "Error loading workout logs", e)
+            emptyList()
+        }
+    }
+
+    suspend fun loadAllLogsForWorkout(teamId: String, workoutId: String): List<Map<String, String>> {
+        return try {
+            val snapshot = Firebase.firestore
+                .collection("teams")
+                .document(teamId)
+                .collection("workouts")
+                .document(workoutId)
+                .collection("allLogs")  // <- correct collection name
+                .get()
+                .await()
+
+            Log.d("AdminLogDetail", "Fetched ${snapshot.size()} logs from Firestore")
+
+            snapshot.documents.mapNotNull { it.data as? Map<String, String> }
+        } catch (e: Exception) {
+            Log.e("AdminLogDetail", "Error fetching logs", e)
             emptyList()
         }
     }

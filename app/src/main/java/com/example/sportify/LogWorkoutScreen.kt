@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import model.Workout
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -134,9 +136,15 @@ fun LogWorkoutScreen(
                     val formatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
                     val currentDate = formatter.format(Date())
 
+                    val user = Firebase.auth.currentUser
+                    val userId = user?.uid ?: "unknown"
+                    val userName = user?.displayName ?: "unknown"
+
                     val logDataWithDate = responses.toMutableMap().apply {
                         put("date", currentDate)
                         put("timestamp", System.currentTimeMillis().toString())
+                        put("userId", userId)
+                        put("userName", userName)
                     }
 
                     viewModel.saveWorkoutLog(

@@ -306,6 +306,52 @@ class MainActivity : ComponentActivity() {
                 val workouts = viewModel.teamWorkouts.collectAsState().value
                 AdminWorkoutListScreen(teamId, workouts, navController, viewModel)
             }
+
+            composable("adminLogView/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
+                val viewModel: TeamViewModel = viewModel()
+
+                AdminLogViewScreen(
+                    teamId = teamId,
+                    viewModel = viewModel,
+                    navController = navController
+                )
+            }
+
+            composable(
+                route = "adminLogDetail/{teamId}/{workoutId}",
+                arguments = listOf(
+                    navArgument("teamId") { type = NavType.StringType },
+                    navArgument("workoutId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
+                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: return@composable
+                val viewModel: TeamViewModel = viewModel()
+
+                AdminLogDetailScreen(
+                    teamId = teamId,
+                    workoutId = workoutId,
+                    viewModel = viewModel
+                )
+            }
+            composable("adminWorkoutList/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
+                val viewModel: TeamViewModel = viewModel()
+                val workouts by viewModel.teamWorkouts.collectAsState(emptyList())
+
+                LaunchedEffect(teamId) {
+                    viewModel.fetchTeamWorkouts(teamId)
+                }
+
+                AdminWorkoutListScreen(
+                    teamId = teamId,
+                    workouts = workouts,
+                    navController = navController,
+                    viewModel = viewModel
+                )
+            }
+
             composable("basketballDrills") { BasketballDrillScreen(navController) }
             composable("drillsList/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: ""

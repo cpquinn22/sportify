@@ -1,6 +1,7 @@
 package com.example.sportify
 
 import ViewModels.TeamViewModel
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,9 +43,13 @@ fun TeamScreen(
                 }) {
                     Text("Create Workout")
                 }
-                Button(onClick = { /* TODO: Navigate to CreateMatch */ }) {
-                    Text("Create Match")
+                Button(onClick = {
+                    navController.navigate("adminLogView/$teamId")
+                    Log.d("AdminLogViewScreen", "Navigating to workout list for teamId: $teamId")
+                }) {
+                    Text("View User Logs")
                 }
+
                 Button(onClick = { /* TODO: Navigate to CreateEvent */ }) {
                     Text("Create Event")
                 }
@@ -64,3 +69,4 @@ fun TeamScreen(
                 }
             }
         }
+
