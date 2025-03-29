@@ -19,7 +19,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 
 
 fun formatLogEntry(
@@ -76,9 +82,11 @@ fun LogViewerScreen(
         logs = viewModel.loadWorkoutLogs(teamId, workoutId)
     }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
     ) {
         if (workout == null) {
             Text("Loading...", style = MaterialTheme.typography.titleMedium)
@@ -93,27 +101,32 @@ fun LogViewerScreen(
         } else {
             logs
                 .sortedByDescending { it["timestamp"] }
-                .groupBy { it["date"] }
+                .groupBy { it["date"] ?: "Unknown Date" }
                 .forEach { (date, logsForDate) ->
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = date ?: "Unknown Date",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
                     logsForDate.forEachIndexed { index, log ->
-                        Text("Log ${index + 1}", style = MaterialTheme.typography.titleSmall)
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = "Log ${index + 1} — $date",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
 
-                        workout!!.steps.forEach { (stepKey, stepLabel) ->
-                            val logType = workout!!.logTypes[stepKey] ?: "None"
-                            val line = formatLogEntry(stepKey, stepLabel, logType, log)
-                            Text(text = line, style = MaterialTheme.typography.bodyMedium)
+                                workout!!.steps.forEach { (stepKey, stepLabel) ->
+                                    val logType = workout!!.logTypes[stepKey] ?: "None"
+                                    val line = formatLogEntry(stepKey, stepLabel, logType, log)
+                                    Text(text = line, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
                         }
-
-                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
         }
     }
-
 }
+
