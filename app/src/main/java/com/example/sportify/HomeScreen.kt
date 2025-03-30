@@ -4,11 +4,14 @@ import ViewModels.TeamViewModel
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,44 +21,59 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 @Composable
-fun HomeScreen(navController: NavHostController,
-               userName: String,
-               viewModel: TeamViewModel
+fun HomeScreen(
+    navController: NavController,
+    userName: String,
+    onLogout: () -> Unit
 ) {
-    val userId = Firebase.auth.currentUser?.uid
-    val isAdmin by viewModel.isAdmin.collectAsState()
-
-    LaunchedEffect(userId) {
-        if (userId != null) {
-            viewModel.fetchAdminStatus(userId)
-        }
-    }
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
-        Text(text = "Welcome to Sportify, $userName!")
-        Button(onClick = { navController.navigate("sports") }) {
-            Text("Go to Sports")
+        // Top Logout Button
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+        ) {
+            Button(onClick = onLogout) {
+                Text("Log Out")
+            }
         }
-        if (isAdmin) {
+
+        // Centered main content
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Welcome to Sportify!",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Button(onClick = { navController.navigate("sports") }) {
+                Text("Go to Sports")
+            }
+
             Button(onClick = { navController.navigate("createTeam") }) {
                 Text("Create a team")
             }
+
+            Button(onClick = { navController.navigate("myTeams") }) {
+                Text("My Teams")
+            }
         }
-        Button(onClick = { navController.navigate("myTeams") }) {
-            Text("My Teams")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        LogoutScreen()
     }
 }
+
 
 @Composable
 fun LogoutScreen() {

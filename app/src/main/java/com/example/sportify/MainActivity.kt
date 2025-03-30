@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -196,7 +195,6 @@ class MainActivity : ComponentActivity() {
                 val token = task.result
                 Log.d("FCM", "🔑 FCM Token: $token")
 
-                // Here, you could send the token to your backend if needed
             }
     }
 
@@ -228,8 +226,16 @@ class MainActivity : ComponentActivity() {
             startDestination = "home"
         ) {
             composable("home") {
-                val viewModel: TeamViewModel = viewModel() // or hiltViewModel() if using Hilt
-                HomeScreen(navController, userName, viewModel)
+                HomeScreen(
+                    navController = navController,
+                    userName = userName,
+                    onLogout = {
+                        // Example: Navigate back to login or clear session
+                        navController.navigate("login") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    }
+                )
             }
             composable("sports") { SportsScreen(navController) }
             Firebase.auth.currentUser?.let { it1 ->  composable("createTeam") { CreateTeamScreen(navController, teamViewModel, it1.uid) } }

@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -242,16 +245,29 @@ fun DrillDetailsScreen(
                         val percentage = log["shootingPercentage"] as? Long ?: 0
                         val timestamp = log["timestamp"]
                         val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
-                        Text(
-                            text = "Log ${index + 1}: Shots Made - $shots, Percentage - $percentage%, Date - $formattedDate",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    "Log ${index + 1}",
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text("Shots Made: $shots")
+                                Text("Shooting %: $percentage%")
+                                Text("Date: $formattedDate")
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
+
 
 fun calculatePercentage(shots: String, totalShots: Int): Int {
     return shots.toIntOrNull()?.let { nonNullShots ->
@@ -619,10 +635,23 @@ fun WeightTrainingDetailsScreen(
                         val timestamp = log["timestamp"]
                         val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
 
-                        Text(
-                            text = "Log ${index + 1}: Weight - $logWeight kg, Set Number - $logSetNumber, Reps - $logReps, Date - $formattedDate",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    "Log ${index + 1}",
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text("Weight: $logWeight kg")
+                                Text("Sets Complete: $logSetNumber")
+                                Text("Reps: $logReps")
+                                Text("Date: $formattedDate")
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(16.dp)) // Space between groups
                 }
@@ -823,22 +852,23 @@ fun FitnessDetailsScreen(
                         val timestamp = log["timestamp"]
                         val formattedDate = drillsRepository.formatTimestampToDateString(timestamp)
 
-                        if (drillKey == "5k_run") {
-                            Text(
-                                text = "Total Time - ${String.format("%.2f", totalTime)} min, " +
-                                        "Average Time per KM - ${
-                                            String.format(
-                                                "%.2f",
-                                                avgTimePerKm
-                                            )
-                                        } min/km, Date - $formattedDate",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        } else {
-                            Text(
-                                text = "Rounds Completed - $rounds, Date - $formattedDate",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("Date: $formattedDate", style = MaterialTheme.typography.titleSmall)
+
+                                if (drillKey == "5k_run") {
+                                    Text("Total Time: ${String.format("%.2f", totalTime)} min")
+                                    Text("Avg Time per KM: ${String.format("%.2f", avgTimePerKm)} min/km")
+                                } else {
+                                    Text("Rounds Completed: $rounds")
+                                }
+                            }
                         }
                     }
                 }
