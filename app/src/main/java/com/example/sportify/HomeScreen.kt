@@ -6,12 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,53 +22,74 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 @Composable
-fun HomeScreen(
-    navController: NavController,
-    userName: String,
-    onLogout: () -> Unit
+fun HomeScreen(navController: NavHostController,
+               userName: String,
+               viewModel: TeamViewModel
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Top Logout Button
-        Column(
+    val userId = Firebase.auth.currentUser?.uid
+    val isAdmin by viewModel.isAdmin.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            viewModel.fetchAdminStatus(userId)
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Log out button at top right
+        Row(
             modifier = Modifier
-                .align(Alignment.TopEnd)
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.End
         ) {
-            Button(onClick = onLogout) {
+            Button(onClick = {
+                Firebase.auth.signOut()
+                context.startActivity(Intent(context, MainActivity::class.java))
+                (context as ComponentActivity).finish()
+            }) {
                 Text("Log Out")
             }
         }
 
-        // Centered main content
+        // Centered content
         Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Welcome to Sportify!",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Text(text = "Welcome to Sportify!")
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Button(onClick = { navController.navigate("sports") }) {
+            Button(
+                onClick = { navController.navigate("sports") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Go to Sports")
             }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Button(onClick = { navController.navigate("createTeam") }) {
-                Text("Create a team")
+            if (isAdmin) {
+                Button(
+                    onClick = { navController.navigate("createTeam") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Create a team")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Button(onClick = { navController.navigate("myTeams") }) {
+            Button(
+                onClick = { navController.navigate("myTeams") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("My Teams")
             }
         }

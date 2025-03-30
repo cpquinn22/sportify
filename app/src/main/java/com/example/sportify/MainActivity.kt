@@ -226,16 +226,8 @@ class MainActivity : ComponentActivity() {
             startDestination = "home"
         ) {
             composable("home") {
-                HomeScreen(
-                    navController = navController,
-                    userName = userName,
-                    onLogout = {
-                        // Example: Navigate back to login or clear session
-                        navController.navigate("login") {
-                            popUpTo("home") { inclusive = true }
-                        }
-                    }
-                )
+                val viewModel: TeamViewModel = viewModel()
+                HomeScreen(navController, userName, viewModel)
             }
             composable("sports") { SportsScreen(navController) }
             Firebase.auth.currentUser?.let { it1 ->  composable("createTeam") { CreateTeamScreen(navController, teamViewModel, it1.uid) } }
