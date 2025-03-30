@@ -1,9 +1,12 @@
 package data
 
 import android.util.Log
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.type.Date
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
@@ -46,10 +49,14 @@ class DrillsRepository {
         shotsMade: Int,
         shootingPercentage: Int
     ) {
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+
         val log = hashMapOf(
             "shotsMade" to shotsMade,
             "shootingPercentage" to shootingPercentage,
-            "timestamp" to Timestamp.now()
+            "timestamp" to Timestamp.now(),
+            "userId" to user.uid,
+            "userName" to (user.displayName ?: user.email ?: "Unknown")
         )
         val drillLogsCollection = drillsCollection.document(sportName).collection("logs_$drillName")
 
@@ -78,7 +85,11 @@ class DrillsRepository {
                 .get()
                 .await()
 
-            val logs = snapshot.documents.map { it.data ?: emptyMap() }
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            val logs = snapshot.documents.mapNotNull { doc ->
+                val data = doc.data
+                if (data != null && data["userId"] == userId) data else null
+            }
             Log.d("Firestore", "✅ Logs fetched for $sportName - $drillName: $logs")
             logs
         } catch (e: Exception) {
@@ -125,11 +136,15 @@ class DrillsRepository {
         setNumber: Int,
         reps: Int
     ) {
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+
         val log = mapOf(
             "weight" to weight,
             "setNumber" to setNumber,
             "reps" to reps,
-            "timestamp" to FieldValue.serverTimestamp()
+            "timestamp" to FieldValue.serverTimestamp(),
+            "userId" to user.uid,
+            "userName" to (user.displayName ?: user.email ?: "Unknown")
         )
 
         val logsCollection = drillsCollection.document("WeightTraining")
@@ -162,10 +177,14 @@ class DrillsRepository {
     }
 
     fun addFitnessLog(drillName: String, totalTime: Float, avgTimePerKm: Float) {
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+
         val log = mapOf(
             "totalTime" to totalTime,
             "avgTimePerKm" to avgTimePerKm,
-            "timestamp" to FieldValue.serverTimestamp()
+            "timestamp" to FieldValue.serverTimestamp(),
+            "userId" to user.uid,
+            "userName" to (user.displayName ?: user.email ?: "Unknown")
         )
 
         val logsCollection = drillsCollection.document("Fitness")
@@ -181,9 +200,13 @@ class DrillsRepository {
     }
 
     fun logRounds(drillType: String, rounds: Int) {
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+
         val log = mapOf(
             "roundsCompleted" to rounds,
-            "timestamp" to FieldValue.serverTimestamp()
+            "timestamp" to FieldValue.serverTimestamp(),
+            "userId" to user.uid,
+            "userName" to (user.displayName ?: user.email ?: "Unknown")
         )
 
         drillsCollection.document("Fitness").collection("logs_$drillType")
@@ -196,21 +219,45 @@ class DrillsRepository {
             }
     }
 
-    fun addLogsSnapshotListener(drillKey: String, logs: MutableList<Map<String, Any>>) {
-        val logsCollection = drillsCollection.document("Fitness")
+    fun addLogsSnapshotListener(
+        drillKey: String,
+        logs: SnapshotStateList<Map<String, Any>>,
+        sport: String = "Fitness" // or "WeightTraining", "Basketball", etc.
+    ) {
+        val currentUser = FirebaseAuth.getInstance().currentUser ?: return
+        val currentUserId = currentUser.uid
+
+        val logsCollection = FirebaseFirestore.getInstance()
+            .collection("drills")
+            .document(sport)
             .collection("logs_${drillKey.lowercase()}")
 
-        logsCollection.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                Log.e("Firestore", "Error listening for logs updates", e)
-                return@addSnapshotListener
-            }
+        logsCollection
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.e("Firestore", "❌ Error fetching logs for $drillKey", e)
+                    return@addSnapshotListener
+                }
 
-            if (snapshot != null && !snapshot.isEmpty) {
-                logs.clear()
-                logs.addAll(snapshot.documents.mapNotNull { it.data })
+                if (snapshot != null && !snapshot.isEmpty) {
+                    logs.clear()
+
+                    val filteredLogs = snapshot.documents.mapNotNull { doc ->
+                        val data = doc.data
+                        if (data != null && data["userId"] == currentUserId) {
+                            data
+                        } else {
+                            null
+                        }
+                    }
+
+                    logs.addAll(filteredLogs)
+                    Log.d("Firestore", "✅ Filtered logs for $drillKey: ${filteredLogs.size}")
+                } else {
+                    logs.clear()
+                    Log.d("Firestore", "ℹ️ No logs found for $drillKey")
+                }
             }
-        }
     }
-
 }

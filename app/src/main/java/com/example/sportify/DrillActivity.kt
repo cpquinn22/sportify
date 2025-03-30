@@ -489,37 +489,18 @@ fun WeightTrainingDetailsScreen(
     val scope = rememberCoroutineScope()
 
 
-    // Function to listen for log updates in real-time
-    fun listenForLogUpdates() {
-        val logsCollection = FirebaseFirestore.getInstance()
-            .collection("drills")
-            .document("WeightTraining")
-            .collection("logs_${exerciseKey.lowercase()}")
-
-        logsCollection.orderBy(
-            "timestamp",
-            com.google.firebase.firestore.Query.Direction.DESCENDING
-        )
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    Log.e("Firestore", "❌ Error fetching live logs", e)
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null && !snapshot.isEmpty) {
-                    logs.clear()
-                    logs.addAll(snapshot.documents.mapNotNull { it.data })
-                    Log.d("Firestore", "🔄 Live logs update: $logs")
-                }
-            }
-    }
-
-    // Fetch exercise details and start listening for logs when the screen loads
+    // Fetch drill details and start listening for logs when the screen loads
     LaunchedEffect(exerciseKey) {
         scope.launch {
             val allDrills = drillsRepository.getWeightTrainingDrills()
             exerciseDetails = allDrills[exerciseKey]
-            listenForLogUpdates() // Start real-time updates
+
+            // ✅ Replace old listener with filtered listener
+            drillsRepository.addLogsSnapshotListener(
+                drillKey = exerciseKey,
+                logs = logs,
+                sport = "WeightTraining"
+            )
         }
     }
 
@@ -718,7 +699,7 @@ fun FitnessDetailsScreen(
         scope.launch {
             val allDrills = drillsRepository.getFitnessDrills()
             drillDetails = allDrills[drillKey]
-            drillsRepository.addLogsSnapshotListener(drillKey, logs)
+            drillsRepository.addLogsSnapshotListener(drillKey, logs, sport = "Fitness")
         }
     }
 
