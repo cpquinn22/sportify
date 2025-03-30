@@ -38,19 +38,29 @@ fun TeamScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (team.adminId == userId) {
-                Button(onClick = {
-                    navController.navigate("createWorkout/$teamId")
-                }) {
+                Button(
+                    onClick = { navController.navigate("createWorkout/$teamId") },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                ) {
                     Text("Create Workout")
                 }
-                Button(onClick = {
-                    navController.navigate("adminLogView/$teamId")
-                    Log.d("AdminLogViewScreen", "Navigating to workout list for teamId: $teamId")
-                }) {
+                Button(
+                    onClick = { navController.navigate("adminLogView/$teamId") },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                ) {
                     Text("View User Logs")
                 }
 
-                Button(onClick = { /* TODO: Navigate to CreateEvent */ }) {
+                Button(
+                    onClick = { navController.navigate("leaderboard/${teamId}") },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                ) {
+                    Text("View Leaderboard")
+                }
+
+                Button(onClick = { /* TODO: Navigate to CreateEvent */ },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                ) {
                     Text("Create Event")
                 }
                 Spacer(modifier = Modifier.height(16.dp))

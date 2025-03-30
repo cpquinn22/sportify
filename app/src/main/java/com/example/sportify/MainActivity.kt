@@ -349,6 +349,17 @@ class MainActivity : ComponentActivity() {
                     viewModel = viewModel
                 )
             }
+            composable(
+                route = "leaderboard/{teamId}",
+                arguments = listOf(navArgument("teamId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                LeaderboardScreen(
+                    teamId = teamId,
+                    viewModel = viewModel(),
+                    onBack = { navController.popBackStack() }
+                )
+            }
 
             composable("basketballDrills") { BasketballDrillScreen(navController) }
             composable("drillsList/{sportName}") { backStackEntry ->

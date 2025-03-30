@@ -26,6 +26,11 @@ class TeamViewModel : ViewModel() {
     private val _selectedTeam = MutableStateFlow<Team?>(null)
     val selectedTeam: StateFlow<Team?> = _selectedTeam
 
+    private val _leaderboardEntries = MutableStateFlow<List<LeaderboardEntry>>(emptyList())
+    val leaderboardEntries: StateFlow<List<LeaderboardEntry>> = _leaderboardEntries
+
+
+
     fun createTeam(teamName: String, selectedSport: String, userId: String) {
         viewModelScope.launch {
             repository.createTeam(teamName, selectedSport, userId)
@@ -216,5 +221,141 @@ class TeamViewModel : ViewModel() {
             emptyList()
         }
     }
+
+    suspend fun loadAllLogsForTeam(teamId: String): List<Map<String, String>> {
+        val db = Firebase.firestore
+        val allLogs = mutableListOf<Map<String, String>>()
+
+        try {
+            val workoutsSnapshot = db.collection("teams")
+                .document(teamId)
+                .collection("workouts")
+                .get()
+                .await()
+
+            for (workoutDoc in workoutsSnapshot.documents) {
+                val workoutId = workoutDoc.id
+                val logsSnapshot = db.collection("teams")
+                    .document(teamId)
+                    .collection("workouts")
+                    .document(workoutId)
+                    .collection("allLogs")
+                    .get()
+                    .await()
+
+                val logs = logsSnapshot.documents.mapNotNull { it.data as? Map<String, String> }
+                allLogs.addAll(logs)
+            }
+
+        } catch (e: Exception) {
+            Log.e("Leaderboard", "Failed to load logs for team $teamId", e)
+        }
+
+        return allLogs
+    }
+
+    fun loadLeaderboard(teamId: String, filter: String) {
+        viewModelScope.launch {
+            val logs = loadAllLogsAcrossUsers(teamId)  // You should already have this function
+            val processed = processLogsForLeaderboard(logs, filter)
+            _leaderboardEntries.value = processed
+        }
+    }
+
+    suspend fun loadAllLogsAcrossUsers(teamId: String): List<Map<String, String>> {
+        val firestore = Firebase.firestore
+        val logs = mutableListOf<Map<String, String>>()
+
+        val workoutsSnapshot = firestore
+            .collection("teams")
+            .document(teamId)
+            .collection("workouts")
+            .get()
+            .await()
+
+        for (workout in workoutsSnapshot.documents) {
+            val workoutId = workout.id
+
+            val logsSnapshot = firestore
+                .collection("teams")
+                .document(teamId)
+                .collection("workouts")
+                .document(workoutId)
+                .collection("allLogs")
+                .get()
+                .await()
+
+            logs += logsSnapshot.documents.mapNotNull { it.data as? Map<String, String> }
+        }
+
+        return logs
+    }
+    fun processLogsForLeaderboard(
+        logs: List<Map<String, String>>,
+        metric: String
+    ): List<LeaderboardEntry> {
+        val userStats = mutableMapOf<String, Pair<String, Float>>() // userId to (userName, score)
+
+        for (log in logs) {
+            val userId = log["userId"] ?: continue
+            val userName = log["userName"] ?: "Unknown"
+
+            when (metric) {
+                "Most Active" -> {
+                    val current = userStats[userId]?.second ?: 0f
+                    userStats[userId] = userName to (current + 1)
+                }
+
+                "Top Runner" -> {
+                    // Sum distance from keys like "stepX-Distance (km)"
+                    val totalDistance = log.entries
+                        .filter { it.key.contains("Distance (km)") }
+                        .sumOf { it.value.toDoubleOrNull() ?: 0.0 }
+
+                    val current = userStats[userId]?.second ?: 0f
+                    userStats[userId] = userName to (current + totalDistance).toFloat()
+
+                }
+
+                "Top Shooter" -> {
+                    val made = log.entries
+                        .filter { it.key.contains("Shots Made") }
+                        .sumOf { it.value.toIntOrNull() ?: 0 }
+
+                    val current = userStats[userId]?.second ?: 0f
+                    userStats[userId] = userName to (current + made)
+                }
+
+                "Top Lifter" -> {
+                    // Sum all weights from keys like "stepX-Weight (kg)"
+                    val totalWeight = log.entries
+                        .filter { it.key.contains("Weight (kg)") }
+                        .sumOf { it.value.toIntOrNull() ?: 0 }
+
+                    val current = userStats[userId]?.second ?: 0f
+                    userStats[userId] = userName to (current + totalWeight)
+                }
+            }
+        }
+
+        return userStats.map { (userId, pair) ->
+            LeaderboardEntry(
+                userId = userId,
+                userName = pair.first,
+                statValue = pair.second,
+                score = pair.second
+            )
+        }.sortedByDescending { it.score }
+    }
+
+    data class LeaderboardEntry(
+        val userId: String,
+        val statValue: Float,
+        val userName: String,
+        val score: Float,
+
+    )
+
+
 
 }
