@@ -51,12 +51,6 @@ fun TeamScreen(
                     Text("View User Logs")
                 }
 
-                Button(
-                    onClick = { navController.navigate("leaderboard/${teamId}") },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                ) {
-                    Text("View Leaderboard")
-                }
 
                 Button(onClick = { /* TODO: Navigate to CreateEvent */ },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
@@ -64,6 +58,13 @@ fun TeamScreen(
                     Text("Create Event")
                 }
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Button(
+                onClick = { navController.navigate("leaderboard/${teamId}") },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            ) {
+                Text("View Leaderboard")
             }
 
             Button(

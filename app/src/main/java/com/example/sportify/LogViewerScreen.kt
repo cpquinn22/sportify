@@ -26,6 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 
 fun formatLogEntry(
@@ -77,9 +79,12 @@ fun LogViewerScreen(
     var workout by remember { mutableStateOf<Workout?>(null) }
     var logs by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
 
+    val currentUserId = Firebase.auth.currentUser?.uid
+
     LaunchedEffect(workoutId) {
         workout = viewModel.loadWorkout(teamId, workoutId)
-        logs = viewModel.loadWorkoutLogs(teamId, workoutId)
+        val allLogs = viewModel.loadWorkoutLogs(teamId, workoutId)
+        logs = allLogs.filter { it["userId"] == currentUserId }
     }
 
     Column(
