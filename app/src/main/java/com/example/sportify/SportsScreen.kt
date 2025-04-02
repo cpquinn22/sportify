@@ -47,6 +47,9 @@ fun SportsScreen(navController: NavHostController, viewModel: SportsViewModel = 
                 }
             }
         }
+        Button(onClick = { navController.navigate("virtualCoach") }) {
+            Text("Virtual Coach Tips")
+        }
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = { navController.navigate("home") }) {
             Text("Back to Home Screen")

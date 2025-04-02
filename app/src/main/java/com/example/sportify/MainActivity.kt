@@ -349,18 +349,18 @@ class MainActivity : ComponentActivity() {
                     viewModel = viewModel
                 )
             }
-            composable(
-                route = "leaderboard/{teamId}",
-                arguments = listOf(navArgument("teamId") { type = NavType.StringType })
-            ) { backStackEntry ->
+            composable("leaderboard/{teamId}") { backStackEntry ->
                 val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                val viewModel: TeamViewModel = viewModel()
                 LeaderboardScreen(
                     teamId = teamId,
-                    viewModel = viewModel(),
+                    viewModel = viewModel,
                     onBack = { navController.popBackStack() }
                 )
             }
-
+            composable("virtualCoach") {
+                VirtualCoachScreen()
+            }
             composable("basketballDrills") { BasketballDrillScreen(navController) }
             composable("drillsList/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: ""

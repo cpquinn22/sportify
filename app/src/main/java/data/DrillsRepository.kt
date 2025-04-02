@@ -67,6 +67,29 @@ class DrillsRepository {
         }
     }
 
+    fun addBasketballLogsListener(
+        drillKey: String,
+        logs: SnapshotStateList<Map<String, Any>>
+    ) {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        FirebaseFirestore.getInstance()
+            .collection("drills")
+            .document("Basketball")
+            .collection("logs_${drillKey.lowercase()}")
+            .whereEqualTo("userId", currentUserId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.e("BasketballLogs", "Error fetching user-specific basketball logs", e)
+                    return@addSnapshotListener
+                }
+
+                logs.clear()
+                snapshot?.documents?.mapNotNull { it.data }?.let { logs.addAll(it) }
+            }
+    }
+
     suspend fun getLogsByDrill(sportName: String, drillName: String): List<Map<String, Any>> {
         return try {
             // Determine naming convention based on sportName
