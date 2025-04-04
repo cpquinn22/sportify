@@ -134,11 +134,6 @@ fun CreateEventScreen(
                     .addOnSuccessListener {
                         Toast.makeText(context, "Event created", Toast.LENGTH_SHORT).show()
                         onEventCreated()
-                        val payload = hashMapOf(
-                            "teamId" to teamId,
-                            "eventName" to eventName,
-                            "eventDate" to eventDate
-                        )
                     }
                     .addOnFailureListener {exception ->
                         Log.e("CreateEvent", "❌ Failed to create event: ${exception.message}", exception)
