@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 
 class WorkoutReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
+        Log.d("Reminder", "WorkoutReminderReceiver triggered")
+
         val channelId = "workout_reminder_channel"
         val notificationId = 101
 

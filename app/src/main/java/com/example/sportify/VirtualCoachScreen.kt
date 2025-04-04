@@ -86,7 +86,7 @@ suspend fun generateCoachFeedbackWithInsights(
 
         // Basic performance insights by drill
         when (selectedDrill) {
-            "3 Point Shooting", "Mid Range Shooting" -> {
+            "3 Point Shooting" -> {
                 val percentages = logs.mapNotNull { it["shootingPercentage"] as? Long }
                 val avg = percentages.average()
                 val best = percentages.maxOrNull()
@@ -98,9 +98,32 @@ suspend fun generateCoachFeedbackWithInsights(
                     append("• Best: $best%, Worst: $worst%\n")
                     append(
                         when {
-                            avg >= 70 -> "🔥 You're lights out from range! Keep it up!"
+                            avg >= 70 -> "🔥 You're shooting great from beyond the arc! Keep it up!"
                             avg >= 50 -> "🎯 Solid performance. Focus on improving consistency."
-                            else -> "⛹️‍♂️ Focus on form, follow-through, and repetition."
+                            else -> "⛹️‍♂️ Keep your shooting motion the same every time, use your legs to generate power and focus on a smooth, one-motion shot."
+                        }
+                    )
+                }
+            }
+            "Mid Range Shooting" -> {
+                val percentages = logs.mapNotNull { it["shootingPercentage"] as? Long }
+                val avg = percentages.average()
+                val best = percentages.maxOrNull()
+                val worst = percentages.minOrNull()
+
+                buildString {
+                    append("📊 Your Shooting Stats\n")
+                    append("• Average: ${"%.1f".format(avg)}%\n")
+                    append("• Best: $best%, Worst: $worst%\n")
+                    append(
+                        when {
+                            avg >= 70 -> "🔥 You're shooting great, try adding in some shots from the dribble" +
+                                    "or from a pass"
+                            avg >= 50 -> "🎯 In the mid range you'll often be shooting over a defender," +
+                                    " so jump with control, not wild power."
+                            else -> "⛹️‍♂️ Keep your shooting motion the same every time, " +
+                                "use your legs to generate power and focus on a smooth, " +
+                        "one-motion shot."
                         }
                     )
                 }
@@ -114,14 +137,16 @@ suspend fun generateCoachFeedbackWithInsights(
                     append(
                         when {
                             avg >= 85 -> "🎯 Automatic! You've got a great routine."
-                            avg >= 65 -> "💡 Good. Try building consistency with a routine."
-                            else -> "📌 Focus on fundamentals: stance, breath, follow-through."
+                            avg >= 65 -> "💡 Good. Try building consistency with a routine. Doing the same routine" +
+                                    "every time helps calm yourself down, making sure you don't rush it"
+                            else -> "📌 Focus on fundamentals: Feet shoulder-width apart and square to the rim. " +
+                                    "Keep the ball centered and don’t rush it — smooth is better than fast"
                         }
                     )
                 }
             }
 
-            "Deadlift", "Squat", "Bench Press" -> {
+            "Deadlift" -> {
                 val weights = logs.mapNotNull { it["weight"] as? Long }
                 val sets = logs.mapNotNull { it["setNumber"] as? Long }
                 val totalLifted = weights.zip(sets).sumOf { it.first * it.second }
@@ -129,16 +154,69 @@ suspend fun generateCoachFeedbackWithInsights(
                 val max = weights.maxOrNull()
 
                 buildString {
-                    append("🏋️ Total Volume: $totalLifted kg\n")
-                    append("• Average Weight: ${"%.1f".format(avgWeight)} kg\n")
-                    append("• Max Lift: $max kg\n")
+                    append("🏋️ Deadlift Volume: $totalLifted kg\n")
+                    append("• Avg Weight: ${"%.1f".format(avgWeight)} kg\n")
+                    append("• Max: $max kg\n")
                     append(
                         when {
-                            avgWeight >= 100 -> "💪 Strong work! Focus on progressive overload and recovery."
-                            avgWeight >= 60 -> "📈 You're on the right track. Work on form and technique."
-                            else -> "🏗️ Build up gradually and master the movement pattern first."
+                            avgWeight >= 100 -> "💪 Doing! Make sure to keep proper form!" +
+                                    "This is the weight when people start to injure themselves.\n"
+                            avgWeight >= 60 -> "📈 Solid start. Add small weight increases weekly (even 2.5 kg). " +
+                                    "Track everything!\n"
+                            else -> "🧱 Focus on technique: flat back, core tight, push the floor away with your legs — " +
+                                    "don’t just yank the bar with your back.\n"
                         }
                     )
+                    append("💡 Tip: Take a big belly breath (diaphragmatic), then push out like you’re preparing for a gut punch." +
+                            "This will keep help support your body on the way up")
+                }
+            }
+
+            "Squat" -> {
+                val weights = logs.mapNotNull { it["weight"] as? Long }
+                val sets = logs.mapNotNull { it["setNumber"] as? Long }
+                val totalLifted = weights.zip(sets).sumOf { it.first * it.second }
+                val avgWeight = if (weights.isNotEmpty()) weights.average() else 0.0
+                val max = weights.maxOrNull()
+
+                buildString {
+                    append("🏋️ Squat Volume: $totalLifted kg\n")
+                    append("• Avg Weight: ${"%.1f".format(avgWeight)} kg\n")
+                    append("• Max: $max kg\n")
+                    append(
+                        when {
+                            avgWeight >= 100 -> "🔥 Strong legs! Now push depth and bracing under heavier load." +
+                                    "Keep form consistent to avoid injury!!\n"
+                            avgWeight >= 60 -> "👍 Getting stronger. Make sure knees track over toes and" +
+                                    "that your knees aren't buckling inwards.\n"
+                            else -> "📉 Try some bodyweight squats to find balance and proper stance.\n"
+                        }
+                    )
+                    append("💡 Tip: Drive through your heels and brace before every rep like you're about to get hit in the gut.")
+                }
+            }
+
+            "Bench Press" -> {
+                val weights = logs.mapNotNull { it["weight"] as? Long }
+                val sets = logs.mapNotNull { it["setNumber"] as? Long }
+                val totalLifted = weights.zip(sets).sumOf { it.first * it.second }
+                val avgWeight = if (weights.isNotEmpty()) weights.average() else 0.0
+                val max = weights.maxOrNull()
+
+                buildString {
+                    append("🏋️ Bench Press Volume: $totalLifted kg\n")
+                    append("• Avg Weight: ${"%.1f".format(avgWeight)} kg\n")
+                    append("• Max: $max kg\n")
+                    append(
+                        when {
+                            avgWeight >= 80 -> "💥 Explosive press! Don’t forget warm-up your shoulders!" +
+                                    " Keep up the work.\n"
+                            avgWeight >= 50 -> "✅ Decent pressing strength. Don't forget to warm up your shoulders!\n"
+                            else -> "🧱 Start with lightweight and get used to bar path and wrist stacking.\n"
+                        }
+                    )
+                    append("💡 Tip: Plant your feet firmly into the ground, a slight leg drive gives you full-body tension. " +
+                            "and think of breaking the bar as you press.")
                 }
             }
 
@@ -338,15 +416,10 @@ fun VirtualCoachScreen() {
                     if (performanceFeedback.value.isNotEmpty()) {
                         Text(
                             text = performanceFeedback.value,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyLarge,
                             color = Color(0xFF2E7D32) // Green tone for feedback
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    tips.forEach { tip ->
-                        Text("• $tip", style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(6.dp))
                     }
                 }
             }

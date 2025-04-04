@@ -33,7 +33,7 @@ class AuthActivity : ComponentActivity() {
             val user = Firebase.auth.currentUser
             Log.d("AuthActivity", "✅ Sign-in successful: ${user?.email}")
 
-            saveUserToFirestore() // ✅ MOVE IT HERE!
+            saveUserToFirestore()
             navigateToMain()
         } else {
             Log.e("AuthActivity", "❌ Sign-in failed")
@@ -83,29 +83,6 @@ class AuthActivity : ComponentActivity() {
         return uniqueUid
     }
 
-    private suspend fun generateUniqueCustomUid(displayName: String?, email: String?): String {
-        val db = FirebaseFirestore.getInstance()
-        var customUid: String
-        var isUnique: Boolean
-
-        // Extract initials
-        val initials =
-            displayName?.split(" ")?.joinToString("") { it.firstOrNull()?.uppercase() ?: "" }
-                ?: email?.split("@")?.firstOrNull()?.take(2)
-                    ?.uppercase() // Default to first 2 letters of email if no displayName
-
-        do {
-            // Generate a random 8-digit number
-            val randomNumber = Random.nextInt(10000000, 99999999)
-            customUid = "$initials$randomNumber" // Combine initials and random number
-
-            // Check if the custom UID already exists in Firestore
-            val documentSnapshot = db.collection("users").document(customUid).get().await()
-            isUnique = !documentSnapshot.exists() // UID is unique if no document exists
-        } while (!isUnique)
-
-        return customUid
-    }
 
     fun saveUserToFirestore() {
         val firebaseUser = FirebaseAuth.getInstance().currentUser

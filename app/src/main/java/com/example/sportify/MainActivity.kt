@@ -53,6 +53,7 @@ import com.example.myapp.data.TeamRepository
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Calendar;
 
 
@@ -91,9 +92,9 @@ private fun scheduleDailyWorkoutReminder(context: Context) {
     )
 
     val calendar = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 10) // Set time for 10:00 AM
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
+        set(Calendar.HOUR_OF_DAY, 12) // Set time for 10:00 AM
+        set(Calendar.MINUTE, 11)
+        set(Calendar.SECOND, 1)
     }
 
     // If the time has already passed today, schedule it for tomorrow
@@ -137,6 +138,25 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(this, AuthActivity::class.java))
             finish()
         } else {
+            // ✅ Update FCM token for existing user
+            FirebaseMessaging.getInstance().token
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val token = task.result
+                        FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(user.uid)
+                            .update("fcmToken", token)
+                            .addOnSuccessListener {
+                                Log.d("FCM", "✅ FCM token updated after login")
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("FCM", "❌ Failed to update FCM token", e)
+                            }
+                    } else {
+                        Log.e("FCM", "❌ Could not fetch token: ${task.exception}")
+                    }
+                }
             // Set content if user is signed in
             setContent {
                 SportifyTheme {
@@ -162,7 +182,11 @@ class MainActivity : ComponentActivity() {
                     permission
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                ActivityCompat.requestPermissions(this, arrayOf(permission), 1)
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    1
+                )
             }
         }
     }

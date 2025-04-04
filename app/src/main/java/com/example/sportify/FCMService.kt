@@ -13,6 +13,8 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -24,14 +26,26 @@ class FCMService : FirebaseMessagingService() {
         val message = remoteMessage.notification?.body ?: remoteMessage.data["body"] ?: "Time to log a workout!"
 
         sendNotification(title, message)
-
     }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "New token: $token")
-        // send the token to  server if needed
+
+        val user = FirebaseAuth.getInstance().currentUser
+        user?.let {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("users").document(it.uid)
+                .update("fcmToken", token)
+                .addOnSuccessListener {
+                    Log.d("FCM", "✅ FCM token saved to Firestore")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("FCM", "❌ Failed to save token to Firestore", e)
+                }
+        }
     }
+
 
     private fun sendNotification(title: String, message: String) {
         val channelId = "workout_reminder_channel"

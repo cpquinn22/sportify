@@ -22,6 +22,18 @@ android {
         }
     }
 
+    packaging {
+        resources {
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
+            excludes += "META-INF/AL2.0"
+            excludes += "META-INF/LGPL2.1"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -89,4 +101,13 @@ dependencies {
     implementation ("com.google.firebase:firebase-firestore-ktx:24.4.1")
 
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.1")
+
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.17.0")
+
+    implementation("com.google.firebase:firebase-functions-ktx")
+
+
+
 }

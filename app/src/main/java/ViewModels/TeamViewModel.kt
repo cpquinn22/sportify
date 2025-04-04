@@ -1,9 +1,15 @@
 package ViewModels
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapp.data.TeamRepository
+import com.example.sportify.R
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -15,6 +21,21 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import model.Team
 import model.Workout
+import com.google.firebase.firestore.DocumentChange
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import java.io.IOException
+import com.google.auth.oauth2.GoogleCredentials
+import java.io.File
+import java.io.FileInputStream
+import com.google.firebase.functions.FirebaseFunctions
+
+
 
 class TeamViewModel : ViewModel() {
 
@@ -112,11 +133,113 @@ class TeamViewModel : ViewModel() {
         workoutRef.set(workout)
             .addOnSuccessListener {
                 Log.d("WorkoutSave", "Workout saved successfully!")
+
+                Log.d("FCM", "Sending teamId: $teamId")
+                Log.d("FCM", "Sending workoutName: ${workout.name}")
+
+                val data = hashMapOf(
+                    "teamId" to teamId,
+                    "workoutName" to workout.name
+                )
+
+                Log.d("FCM", "📦 Sending payload to Cloud Function: $data")
+
+                FirebaseFunctions.getInstance()
+                    .getHttpsCallable("sendWorkoutNotification")
+                    .call(data)
+                    .addOnSuccessListener { result ->
+                        Log.d("FCM", "✅ Cloud Function Success")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("FCM", "❌ Cloud Function Failed", e)
+                    }
             }
             .addOnFailureListener { e ->
                 Log.e("WorkoutSave", "Error saving workout", e)
             }
     }
+
+    fun sendPushNotificationToTeamMembers(teamId: String, workoutName: String) {
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("teams").document(teamId).get()
+            .addOnSuccessListener { teamDoc ->
+                val members = teamDoc.get("members") as? List<*>
+
+                if (members.isNullOrEmpty()) {
+                    Log.d("FCM", "No members in team $teamId")
+                    return@addOnSuccessListener
+                }
+
+                members.forEach { memberId ->
+                    if (memberId is String) {
+                        db.collection("users").document(memberId).get()
+                            .addOnSuccessListener { userDoc ->
+                                val token = userDoc.getString("fcmToken")
+                                val name = userDoc.getString("name")
+
+                                if (!token.isNullOrEmpty()) {
+                                    Log.d("FCM", "📨 Sending notification to $name ($memberId)")
+                                    sendNotificationToToken(token, workoutName)
+                                } else {
+                                    Log.w("FCM", "⚠️ No token for user $memberId")
+                                }
+                            }
+                            .addOnFailureListener {
+                                Log.e("FCM", "❌ Failed to fetch user $memberId", it)
+                            }
+                    }
+                }
+            }
+            .addOnFailureListener {
+                Log.e("FCM", "❌ Failed to fetch team $teamId", it)
+            }
+    }
+
+    fun sendNotificationToToken(token: String, workoutName: String) {
+        try {
+            val credentials = GoogleCredentials.fromStream(
+                FileInputStream(File("app", "sportify-11df1-firebase-adminsdk-u0gjb-80a37a7c71.json"))
+            )
+            val accessToken = credentials.refreshAccessToken().tokenValue
+            val client = OkHttpClient()
+
+            val json = """
+        {
+            "to": "$token",
+            "notification": {
+                "title": "New Workout Available!",
+                "body": "A new workout \"$workoutName\" was added to your team."
+            }
+        }
+        """.trimIndent()
+
+            Log.d("FCM", "📨 Preparing to send notification. JSON: $json")
+
+            val requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+            val request = Request.Builder()
+                .url("https://fcm.googleapis.com/fcm/send")
+                .addHeader("Authorization", "Bearer $accessToken")
+                .post(requestBody)
+                .build()
+
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    Log.e("FCM", "❌ Notification failed to send: ${e.message}", e)
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    val body = response.body?.string()
+                    Log.d("FCM", "✅ Notification sent successfully. Response: $body")
+                }
+            })
+
+        } catch (e: Exception) {
+            Log.e("FCM", "❌ Error sending push notification: ${e.message}", e)
+        }
+    }
+
+
     suspend fun loadWorkout(teamId: String, workoutId: String): Workout? {
         return try {
             val doc = Firebase.firestore
