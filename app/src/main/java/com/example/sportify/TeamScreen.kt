@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
 
+
 @Composable
 fun TeamScreen(
     teamId: String,
@@ -39,45 +40,39 @@ fun TeamScreen(
 
             if (team.adminId == userId) {
                 Button(
-                    onClick = { navController.navigate("createWorkout/$teamId") },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    onClick = { navController.navigate("adminTools/$teamId") },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Create Workout")
+                    Text("Admin Tools")
                 }
+            }
+
                 Button(
-                    onClick = { navController.navigate("adminLogView/$teamId") },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    onClick = { navController.navigate("upcoming_events/$teamId") },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("View User Logs")
+                    Text("View Upcoming Events")
                 }
 
-
-                Button(onClick = { /* TODO: Navigate to CreateEvent */ },
+                Button(
+                    onClick = { navController.navigate("leaderboard/${teamId}") },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 ) {
-                    Text("Create Event")
+                    Text("View Leaderboard")
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
 
-            Button(
-                onClick = { navController.navigate("leaderboard/${teamId}") },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-            ) {
-                Text("View Leaderboard")
-            }
-
-            Button(
-                onClick = {
-                    navController.navigate("workoutList/$teamId")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
-            ) {
-                Text("Available Workouts")
-            }
+                Button(
+                    onClick = {
+                        navController.navigate("workoutList/$teamId")
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    Text("Available Workouts")
                 }
             }
         }
+    }
+
 

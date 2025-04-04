@@ -385,6 +385,28 @@ class MainActivity : ComponentActivity() {
             composable("virtualCoach") {
                 VirtualCoachScreen()
             }
+
+            composable("createEvent/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                CreateEventScreen(
+                    teamId = teamId,
+                    onEventCreated = {
+                        // Navigate back after event is created
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable("upcoming_events/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
+                UpcomingEventsScreen(teamId = teamId)
+            }
+
+            composable("adminTools/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                AdminToolsScreen(teamId = teamId, navController = navController)
+            }
+
             composable("basketballDrills") { BasketballDrillScreen(navController) }
             composable("drillsList/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: ""

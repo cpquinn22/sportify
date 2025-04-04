@@ -81,7 +81,7 @@ fun HomeScreen(navController: NavHostController,
                     onClick = { navController.navigate("createTeam") },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Create a team")
+                    Text("Create a Team")
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
