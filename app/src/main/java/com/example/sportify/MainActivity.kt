@@ -407,6 +407,12 @@ class MainActivity : ComponentActivity() {
                 AdminToolsScreen(teamId = teamId, navController = navController)
             }
 
+            composable("addMember/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                AddTeamMemberScreen(teamId = teamId, navController = navController)
+            }
+
+
             composable("basketballDrills") { BasketballDrillScreen(navController) }
             composable("drillsList/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: ""

@@ -1,5 +1,8 @@
 package com.example.sportify
 
+import ViewModels.AdminViewModel
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,13 +11,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
+
 
 @Composable
 fun AdminToolsScreen(teamId: String, navController: NavHostController) {
+    val context = LocalContext.current
+    var emailInput by remember { mutableStateOf("") }
+    val adminViewModel: AdminViewModel = viewModel()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -22,6 +34,13 @@ fun AdminToolsScreen(teamId: String, navController: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Admin Tools", style = MaterialTheme.typography.headlineLarge)
+
+        Button(
+            onClick = { navController.navigate("addMember/$teamId") },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+        ) {
+            Text("Add Member to Team")
+        }
 
         Button(onClick = { navController.navigate("createWorkout/$teamId") },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
