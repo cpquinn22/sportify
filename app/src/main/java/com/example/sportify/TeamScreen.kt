@@ -43,7 +43,7 @@ fun TeamScreen(
                     onClick = { navController.navigate("adminTools/$teamId") },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Admin Tools")
+                    Text("Coach Tools")
                 }
             }
 

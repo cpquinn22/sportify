@@ -54,7 +54,7 @@ class AuthActivity : ComponentActivity() {
         val intent = AuthUI.getInstance()
             .createSignInIntentBuilder()
             .setAvailableProviders(providers)
-            .setIsSmartLockEnabled(false) // Disable Smart Lock for testing
+            .setIsSmartLockEnabled(false)
             .build()
 
         signInLauncher.launch(intent)
@@ -63,24 +63,6 @@ class AuthActivity : ComponentActivity() {
     private fun navigateToMain() {
         startActivity(Intent(this, MainActivity::class.java))
         finish()
-    }
-
-    // Generate a unique 8-digit UID
-    private suspend fun generateUniqueUid(): String {
-        val db = FirebaseFirestore.getInstance()
-        var uniqueUid: String
-        var isUnique: Boolean
-
-        do {
-            // Generate a random 8-digit number
-            uniqueUid = Random.nextInt(10000000, 99999999).toString()
-
-            // Check if the UID already exists in Firestore
-            val documentSnapshot = db.collection("users").document(uniqueUid).get().await()
-            isUnique = !documentSnapshot.exists() // UID is unique if no document exists
-        } while (!isUnique)
-
-        return uniqueUid
     }
 
 
@@ -138,20 +120,5 @@ class AuthActivity : ComponentActivity() {
         }
     }
 
-
-    @Composable
-    fun AuthScreen() {
-        Surface(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Authenticating...")
-            }
-        }
-    }
 }
 

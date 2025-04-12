@@ -201,6 +201,6 @@ class TeamRepository {
 
     // Generate a random unique team code
     private fun generateUniqueTeamCode(): String {
-        return (100000..999999).random().toString() // Example: 6-digit random number
+        return (100000..999999).random().toString()
     }
 }

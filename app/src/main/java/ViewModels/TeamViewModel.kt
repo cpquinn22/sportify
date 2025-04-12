@@ -66,15 +66,6 @@ class TeamViewModel : ViewModel() {
             _selectedTeam.value = team
         }
     }
-    fun joinTeam(userId: String, teamCode: String) {
-        viewModelScope.launch {
-            repository.joinTeam(userId, teamCode)
-        }
-    }
-
-    suspend fun getTeamIdByName(name: String): String? {
-        return repository.getTeamIdByName(name)
-    }
 
     fun fetchUserTeams(firebaseUid: String?) {
         viewModelScope.launch {
@@ -112,17 +103,6 @@ class TeamViewModel : ViewModel() {
         return repository.getSportsList()
     }
 
-    fun createWorkout(teamId: String, workout: Workout) {
-        viewModelScope.launch {
-            try {
-                repository.saveWorkout(teamId, workout)
-                Log.d("WorkoutDebug", "✅ Workout saved successfully for team $teamId")
-            } catch (e: Exception) {
-                Log.e("WorkoutDebug", "❌ Error saving workout", e)
-            }
-        }
-    }
-
     fun saveWorkoutToFirestore(teamId: String, workout: Workout) {
         val db = FirebaseFirestore.getInstance()
         val workoutRef = db.collection("teams")
@@ -156,43 +136,6 @@ class TeamViewModel : ViewModel() {
             }
             .addOnFailureListener { e ->
                 Log.e("WorkoutSave", "Error saving workout", e)
-            }
-    }
-
-    fun sendPushNotificationToTeamMembers(teamId: String, workoutName: String) {
-        val db = FirebaseFirestore.getInstance()
-
-        db.collection("teams").document(teamId).get()
-            .addOnSuccessListener { teamDoc ->
-                val members = teamDoc.get("members") as? List<*>
-
-                if (members.isNullOrEmpty()) {
-                    Log.d("FCM", "No members in team $teamId")
-                    return@addOnSuccessListener
-                }
-
-                members.forEach { memberId ->
-                    if (memberId is String) {
-                        db.collection("users").document(memberId).get()
-                            .addOnSuccessListener { userDoc ->
-                                val token = userDoc.getString("fcmToken")
-                                val name = userDoc.getString("name")
-
-                                if (!token.isNullOrEmpty()) {
-                                    Log.d("FCM", "📨 Sending notification to $name ($memberId)")
-                                    sendNotificationToToken(token, workoutName)
-                                } else {
-                                    Log.w("FCM", "⚠️ No token for user $memberId")
-                                }
-                            }
-                            .addOnFailureListener {
-                                Log.e("FCM", "❌ Failed to fetch user $memberId", it)
-                            }
-                    }
-                }
-            }
-            .addOnFailureListener {
-                Log.e("FCM", "❌ Failed to fetch team $teamId", it)
             }
     }
 
@@ -345,41 +288,9 @@ class TeamViewModel : ViewModel() {
         }
     }
 
-    suspend fun loadAllLogsForTeam(teamId: String): List<Map<String, String>> {
-        val db = Firebase.firestore
-        val allLogs = mutableListOf<Map<String, String>>()
-
-        try {
-            val workoutsSnapshot = db.collection("teams")
-                .document(teamId)
-                .collection("workouts")
-                .get()
-                .await()
-
-            for (workoutDoc in workoutsSnapshot.documents) {
-                val workoutId = workoutDoc.id
-                val logsSnapshot = db.collection("teams")
-                    .document(teamId)
-                    .collection("workouts")
-                    .document(workoutId)
-                    .collection("allLogs")
-                    .get()
-                    .await()
-
-                val logs = logsSnapshot.documents.mapNotNull { it.data as? Map<String, String> }
-                allLogs.addAll(logs)
-            }
-
-        } catch (e: Exception) {
-            Log.e("Leaderboard", "Failed to load logs for team $teamId", e)
-        }
-
-        return allLogs
-    }
-
     fun loadLeaderboard(teamId: String, filter: String) {
         viewModelScope.launch {
-            val logs = loadAllLogsAcrossUsers(teamId)  // You should already have this function
+            val logs = loadAllLogsAcrossUsers(teamId)
             val processed = processLogsForLeaderboard(logs, filter)
             _leaderboardEntries.value = processed
         }

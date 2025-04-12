@@ -42,30 +42,6 @@ fun CreateEventScreen(
 
     val context = LocalContext.current
 
-    // Show Date Picker
-    val calendar = Calendar.getInstance()
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _, year, month, day ->
-            eventDate = "${day}/${month + 1}/$year"
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
-
-    // Show Time Picker
-    val timePickerDialog = TimePickerDialog(
-        context,
-        { _, hour, minute ->
-            val formattedHour = hour.toString().padStart(2, '0')
-            val formattedMinute = minute.toString().padStart(2, '0')
-            eventTime = "$formattedHour:$formattedMinute"
-        },
-        calendar.get(Calendar.HOUR_OF_DAY),
-        calendar.get(Calendar.MINUTE),
-        true
-    )
 
     Column(
         modifier = modifier

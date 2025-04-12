@@ -67,35 +67,12 @@ class DrillsRepository {
         }
     }
 
-    fun addBasketballLogsListener(
-        drillKey: String,
-        logs: SnapshotStateList<Map<String, Any>>
-    ) {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-        FirebaseFirestore.getInstance()
-            .collection("drills")
-            .document("Basketball")
-            .collection("logs_${drillKey.lowercase()}")
-            .whereEqualTo("userId", currentUserId)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    Log.e("BasketballLogs", "Error fetching user-specific basketball logs", e)
-                    return@addSnapshotListener
-                }
-
-                logs.clear()
-                snapshot?.documents?.mapNotNull { it.data }?.let { logs.addAll(it) }
-            }
-    }
-
     suspend fun getLogsByDrill(sportName: String, drillName: String): List<Map<String, Any>> {
         return try {
-            // Determine naming convention based on sportName
+
             val normalizedDrillName = when (sportName) {
-                "Basketball" -> drillName // Retain spaces for Basketball
-                "WeightTraining" -> drillName.lowercase() // Convert to lowercase for WeightTraining
+                "Basketball" -> drillName
+                "WeightTraining" -> drillName.lowercase()
                 else -> drillName // Default case
             }
 
@@ -245,7 +222,7 @@ class DrillsRepository {
     fun addLogsSnapshotListener(
         drillKey: String,
         logs: SnapshotStateList<Map<String, Any>>,
-        sport: String = "Fitness" // or "WeightTraining", "Basketball", etc.
+        sport: String = "Fitness"
     ) {
         val currentUser = FirebaseAuth.getInstance().currentUser ?: return
         val currentUserId = currentUser.uid

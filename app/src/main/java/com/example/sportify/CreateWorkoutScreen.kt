@@ -36,7 +36,7 @@ fun CreateWorkoutScreen(
     var name by remember { mutableStateOf("") }
     var info by remember { mutableStateOf("") }
     val steps = remember { mutableStateListOf("") }
-    val stepLogTypes = remember { mutableStateListOf("None") } // Matches steps by index
+    val stepLogTypes = remember { mutableStateListOf("None") }
 
     Column(
         modifier = Modifier
@@ -102,11 +102,13 @@ fun CreateWorkoutScreen(
         Button(
             onClick = {
                 if (name.isNotBlank() && info.isNotBlank() && steps.all { it.isNotBlank() }) {
+                    val stepIds = steps.mapIndexed { i, _ -> "step_${i + 1}" }
                     val workout = Workout(
                         name = name,
                         info = info,
                         steps = steps.mapIndexed { i, step -> "step_${i + 1}" to step }.toMap(),
-                        logTypes = steps.mapIndexed { i, _ -> "step_${i + 1}" to stepLogTypes[i] }.toMap()
+                        logTypes = steps.mapIndexed { i, _ -> "step_${i + 1}" to stepLogTypes[i] }.toMap(),
+                                stepOrder = stepIds
                     )
                     viewModel.saveWorkoutToFirestore(teamId, workout)
                     onWorkoutCreated()

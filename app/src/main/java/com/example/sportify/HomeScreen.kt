@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,7 +66,13 @@ fun HomeScreen(navController: NavHostController,
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Welcome to Sportify!")
+            Text(
+                text = "Welcome to Sportify!",
+                style = MaterialTheme.typography.displayMedium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+            )
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
@@ -97,24 +104,3 @@ fun HomeScreen(navController: NavHostController,
 }
 
 
-@Composable
-fun LogoutScreen() {
-    // Retrieve the context in a valid composable scope
-    val context = LocalContext.current
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
-    ) {
-        Text(text = "You are signed in!")
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = {
-            Firebase.auth.signOut()
-            context.startActivity(Intent(context, MainActivity::class.java))
-            (context as ComponentActivity).finish()
-        }) {
-            Text("Log Out")
-        }
-    }
-}

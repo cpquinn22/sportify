@@ -282,7 +282,6 @@ fun VirtualCoachScreen() {
         "💪 Fitness" to listOf("5K Run", "Interval Sprints", "Skipping")
     )
 
-    // Curated static tips
     val drillTips = mapOf(
         "3 Point Shooting" to listOf(
             "🏀 Focus on quick release and consistent arc.",

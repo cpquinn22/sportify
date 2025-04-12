@@ -31,6 +31,9 @@ import com.google.firebase.auth.auth
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 
 @Composable
 fun LogWorkoutScreen(
@@ -46,15 +49,31 @@ fun LogWorkoutScreen(
     LaunchedEffect(workoutId) {
         val loadedWorkout = viewModel.loadWorkout(teamId, workoutId)
         workout = loadedWorkout
-        loadedWorkout?.logFields?.keys?.forEach { fieldKey ->
-            responses[fieldKey] = ""
+        loadedWorkout?.stepOrder?.forEach { stepKey ->
+            when (loadedWorkout.logTypes[stepKey]) {
+                "Weight Training" -> {
+                    listOf("Weight (kg)", "Reps", "Sets Complete").forEach { field ->
+                        responses["$stepKey-$field"] = ""
+                    }
+                }
+                "Running" -> {
+                    responses["$stepKey-Distance (km)"] = ""
+                    responses["$stepKey-Time (minutes)"] = ""
+                }
+                "Shooting" -> {
+                    responses["$stepKey-Shots Made"] = ""
+                }
+            }
         }
     }
+
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (workout == null) {
@@ -65,7 +84,8 @@ fun LogWorkoutScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            workout!!.steps.forEach { (stepKey, stepLabel) ->
+            workout!!.stepOrder.forEach { stepKey ->
+                val stepLabel = workout!!.steps[stepKey] ?: return@forEach
                 val logType = workout!!.logTypes[stepKey] ?: "None"
 
                 when (logType) {
@@ -133,6 +153,12 @@ fun LogWorkoutScreen(
 
             Button(
                 onClick = {
+                    val hasEmptyField = responses.values.any { it.isBlank() }
+                    if (hasEmptyField) {
+                        Toast.makeText(context, "Please fill in all fields before submitting.", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
                     val formatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
                     val currentDate = formatter.format(Date())
 

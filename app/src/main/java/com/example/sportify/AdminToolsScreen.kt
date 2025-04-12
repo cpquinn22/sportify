@@ -23,9 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AdminToolsScreen(teamId: String, navController: NavHostController) {
-    val context = LocalContext.current
-    var emailInput by remember { mutableStateOf("") }
-    val adminViewModel: AdminViewModel = viewModel()
+
 
     Column(
         modifier = Modifier
