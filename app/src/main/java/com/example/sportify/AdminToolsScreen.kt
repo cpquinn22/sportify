@@ -31,7 +31,7 @@ fun AdminToolsScreen(teamId: String, navController: NavHostController) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Admin Tools", style = MaterialTheme.typography.headlineLarge)
+        Text("Coach Tools", style = MaterialTheme.typography.headlineLarge)
 
         Button(
             onClick = { navController.navigate("addMember/$teamId") },

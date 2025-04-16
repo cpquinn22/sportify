@@ -365,14 +365,14 @@ fun BasketballDrillScreen(navController: NavHostController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Basketball Drills",
+            "Basketball",
             style = androidx.compose.material3.MaterialTheme.typography.titleLarge
         )
         Button(
             onClick = { navController.navigate("drillsList/Basketball") },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Shooting")
+            Text("Baskebtall Drills")
         }
         Button(onClick = { navController.navigate("weightTraining") }
             , modifier = Modifier.fillMaxWidth()) {
@@ -444,7 +444,7 @@ fun TennisDrillScreen(navController: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Tennis Drills", style = MaterialTheme.typography.titleLarge)
+        Text("Tennis", style = MaterialTheme.typography.titleLarge)
         Button(onClick = { navController.navigate("drillsList/Tennis") }, modifier = Modifier.fillMaxWidth()) {
             Text("Tennis Drills")
         }
@@ -478,7 +478,7 @@ fun FootballDrillScreen(navController: NavHostController) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Football Drills", style = MaterialTheme.typography.titleLarge)
+        Text("Football", style = MaterialTheme.typography.titleLarge)
         Button(onClick = { navController.navigate("drillsList/Football") }, modifier = Modifier.fillMaxWidth()) {
             Text("Football Drills")
         }
@@ -954,7 +954,7 @@ fun FitnessDetailsScreen(
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Virtual Coach")
+                    Text("Virtual Coach Feedback")
                 }
             }
         } else {

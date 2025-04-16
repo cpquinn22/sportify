@@ -25,6 +25,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 
 
 @Composable
@@ -37,11 +40,13 @@ fun CreateWorkoutScreen(
     var info by remember { mutableStateOf("") }
     val steps = remember { mutableStateListOf("") }
     val stepLogTypes = remember { mutableStateListOf("None") }
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(scrollState), // 👈 Add this line
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Create New Workout", style = MaterialTheme.typography.titleLarge)
@@ -60,13 +65,15 @@ fun CreateWorkoutScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        val scrollState = rememberScrollState()
+
         steps.forEachIndexed { index, step ->
             Column {
                 OutlinedTextField(
                     value = step,
                     onValueChange = { newValue -> steps[index] = newValue },
                     label = { Text("Step ${index + 1}") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 var expanded by remember { mutableStateOf(false) }

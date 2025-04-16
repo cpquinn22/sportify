@@ -94,9 +94,12 @@ fun LogWorkoutScreen(
                             val key = "$stepKey-$field"
                             OutlinedTextField(
                                 value = responses[key] ?: "",
-                                onValueChange = { responses[key] = it },
+                                onValueChange = { input ->
+                                    responses[key] = input.filter { it.isDigit() }
+                                },
                                 label = { Text("$stepLabel - $field") },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                             )
                         }
                     }
@@ -107,15 +110,21 @@ fun LogWorkoutScreen(
 
                         OutlinedTextField(
                             value = responses[distKey] ?: "",
-                            onValueChange = { responses[distKey] = it },
+                            onValueChange = { input ->
+                                responses[distKey] = input.filter { it.isDigit() || it == '.' }
+                            },
                             label = { Text("Distance (km)") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                         )
                         OutlinedTextField(
                             value = responses[timeKey] ?: "",
-                            onValueChange = { responses[timeKey] = it },
+                            onValueChange = { input ->
+                                responses[timeKey] = input.filter { it.isDigit() || it == '.' }
+                            },
                             label = { Text("Time (minutes)") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                         )
 
                         val distance = responses[distKey]?.toFloatOrNull()
@@ -130,9 +139,12 @@ fun LogWorkoutScreen(
                         val shotsKey = "$stepKey-Shots Made"
                         OutlinedTextField(
                             value = responses[shotsKey] ?: "",
-                            onValueChange = { responses[shotsKey] = it },
+                            onValueChange = { input ->
+                                responses[shotsKey] = input.filter { it.isDigit() }
+                            },
                             label = { Text("$stepLabel - Shots Made") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                         )
 
                         val made = responses[shotsKey]?.toIntOrNull()
@@ -156,6 +168,12 @@ fun LogWorkoutScreen(
                     val hasEmptyField = responses.values.any { it.isBlank() }
                     if (hasEmptyField) {
                         Toast.makeText(context, "Please fill in all fields before submitting.", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    val nonNumeric = responses.any { (_, value) -> value.toFloatOrNull() == null }
+                    if (nonNumeric) {
+                        Toast.makeText(context, "Please enter numbers only in all fields.", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
