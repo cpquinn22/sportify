@@ -32,6 +32,7 @@ import data.DrillsRepository
 import kotlinx.coroutines.launch
 import java.security.Timestamp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -49,17 +50,18 @@ fun DrillActivity(
     sportName: String,
     drillsRepository: DrillsRepository = DrillsRepository()
 ) {
+    // holds drills loaded from Firestore
     val drills = remember { mutableStateOf<Map<String, Drill>>(emptyMap()) }
     val scope = rememberCoroutineScope()
 
-    // Fetch drills when activity loads
+    // Fetch drills for selected sport
     LaunchedEffect(sportName) {
         scope.launch {
             drills.value = drillsRepository.getDrillsBySport(sportName)
         }
     }
 
-    // Logic to handle different sports
+    // route user to correct screen based on sport name
     when {
         sportName == "Basketball" -> {
             BasketballDrillScreen(navController)
@@ -138,6 +140,7 @@ fun DrillDetailsScreen(
     sportName: String,
     drillsRepository: DrillsRepository
 ) {
+    // stat for inout and feedback
     val repository = DrillsRepository()
     var shotsMade by remember { mutableStateOf("") }
     val totalShots = 15
@@ -145,11 +148,11 @@ fun DrillDetailsScreen(
     val logs = remember { mutableStateListOf<Map<String, Any>>() }
     val drillName = drill.name
     val scrollState = rememberScrollState()
-    var coachFeedback by remember { mutableStateOf("") }
+    var quickStats by remember { mutableStateOf("") }
 
 
 
-    // Fetch logs from Firestores
+    // fetch and filter logs for the current user
     suspend fun fetchLogs() {
         val userId = Firebase.auth.currentUser?.uid
         val fetchedLogs = repository.getLogsByDrill(sportName, drillName)
@@ -163,6 +166,7 @@ fun DrillDetailsScreen(
         Log.d("Firestore", "Filtered logs for user $userId: $userLogs")
     }
 
+    // fetch logs when the drill screen loads
     LaunchedEffect(drillName) {
         fetchLogs()
     }
@@ -249,43 +253,29 @@ fun DrillDetailsScreen(
                         (it["shootingPercentage"] as? Long)?.toFloat()
                     }
 
-                    if (shootingPercentages.isNotEmpty()) {
+                    quickStats = if (shootingPercentages.isNotEmpty()) {
                         val avg = shootingPercentages.average()
                         val max = shootingPercentages.maxOrNull()
                         val min = shootingPercentages.minOrNull()
 
-                        coachFeedback = buildString {
+                        buildString {
                             append("📊 Average Shooting %: ${"%.1f".format(avg)}%\n")
-                            append("🏅 Best: ${max?.toInt()}%, 🧱 Worst: ${min?.toInt()}\n")
-
-                            when {
-                                avg >= 70 -> {
-                                    append("🔥 You're on fire! Keep up the great shooting!\n")
-                                    append("🧠 Tip: Try practicing with defenders or in-game scenarios to challenge yourself.")
-                                }
-                                avg >= 50 -> {
-                                    append("👍 Solid performance. Try to push above 70%!\n")
-                                    append("🎯 Tip: Focus on your form and follow-through. Repetition builds consistency.")
-                                }
-                                else -> {
-                                    append("💪 Keep practicing. Focus on consistency and form.\n")
-                                    append("📌 Tip: Focus on a consistent shooting routine — same foot placement, same release every time.")
-                                }
-                            }
+                            append("🏅 Best: ${max?.toInt()}%, 🧱 Worst: ${min?.toInt()}%")
                         }
                     } else {
-                        coachFeedback = "Not enough data to analyze your performance yet."
+                        "Not enough data to show quick stats yet."
                     }
                 },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Virtual Coach Feedback")
+                Text("Quick Stats")
             }
         }
 
-        if (coachFeedback.isNotEmpty()) {
+        // show quick stats
+        if (quickStats.isNotEmpty()) {
             Text(
-                text = coachFeedback,
+                text = quickStats,
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color(0xFF2E7D32),
                 modifier = Modifier
@@ -372,7 +362,7 @@ fun BasketballDrillScreen(navController: NavHostController) {
             onClick = { navController.navigate("drillsList/Basketball") },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Baskebtall Drills")
+            Text("Basketball Drills")
         }
         Button(onClick = { navController.navigate("weightTraining") }
             , modifier = Modifier.fillMaxWidth()) {
@@ -557,8 +547,8 @@ fun WeightTrainingDetailsScreen(
     var reps by remember { mutableStateOf("") }
     var logs = remember { mutableStateListOf<Map<String, Any>>() }
 
-    var coachFeedback by remember { mutableStateOf("") }
-    var showCoachFeedback by remember { mutableStateOf(false) }
+    var quickStats by remember { mutableStateOf("") }
+    var showQuickStats by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -569,7 +559,6 @@ fun WeightTrainingDetailsScreen(
             val allDrills = drillsRepository.getWeightTrainingDrills()
             exerciseDetails = allDrills[exerciseKey]
 
-            // ✅ Replace old listener with filtered listener
             drillsRepository.addLogsSnapshotListener(
                 drillKey = exerciseKey,
                 logs = logs,
@@ -605,7 +594,7 @@ fun WeightTrainingDetailsScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Log ${exerciseDetails?.name ?: exerciseKey}",
+            "${exerciseDetails?.name ?: exerciseKey}",
             style = MaterialTheme.typography.titleLarge
         )
 
@@ -618,7 +607,12 @@ fun WeightTrainingDetailsScreen(
         exerciseDetails?.steps
             ?.toSortedMap(compareBy { it })
             ?.forEach { (key, step) ->
-                Text("$key: $step", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = "$key: $step",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth(), // takes full width
+                    textAlign = TextAlign.Center // centers the text itself
+                )
             }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -680,7 +674,6 @@ fun WeightTrainingDetailsScreen(
                         val avgWeight = weights.average()
                         val maxWeight = weights.maxOrNull() ?: 0
 
-                        // Training volume: weight × sets
                         val totalVolume = logs.sumOf {
                             val w = (it["weight"] as? Long) ?: 0L
                             val s = (it["setNumber"] as? Long) ?: 0L
@@ -688,39 +681,25 @@ fun WeightTrainingDetailsScreen(
                         }
                         val avgVolume = if (logs.isNotEmpty()) totalVolume.toFloat() / logs.size else 0f
 
-                        val commonReps = repsList.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
-                        val commonSets = setsList.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
-
-                        coachFeedback = buildString {
+                        quickStats = buildString {
                             append("🏋 Average Weight: ${"%.1f".format(avgWeight)} kg\n")
                             append("📦 Average Volume (Weight × Sets): ${"%.1f".format(avgVolume)} kg\n")
                             append("🏆 Best Lift: $maxWeight kg\n")
-                            if (commonReps != null && commonSets != null) {
-                                append("📊 Common Routine: $commonReps reps x $commonSets sets\n")
-                            }
-
-                            // Personalized tip based on average weight
-                            append("\n🧠 Tip: ")
-                            when {
-                                avgWeight >= 100 -> append("You're lifting heavy, keep it up! Make sure to focus on form and recovery.")
-                                avgWeight >= 70 -> append("Solid work! Try gradually increasing reps to improve endurance.")
-                                else -> append("Keep building your strength. Aim for consistent progression over time.")
-                            }
                         }
                     } else {
-                        coachFeedback = "Not enough logs to give feedback yet."
+                        quickStats = "Not enough logs to show quick stats yet."
                     }
-                    showCoachFeedback = true
+                    showQuickStats = true
                 },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Virtual Coach Feedback")
+                Text("Quick Stats")
             }
         }
 
-        if (showCoachFeedback && coachFeedback.isNotEmpty()) {
+        if (showQuickStats && quickStats.isNotEmpty()) {
             Text(
-                text = coachFeedback,
+                text = quickStats,
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color(0xFF2E7D32),
                 modifier = Modifier
@@ -833,8 +812,8 @@ fun FitnessDetailsScreen(
     }
     val scope = rememberCoroutineScope()
 
-    var coachFeedback by remember { mutableStateOf("") }
-    var showCoachFeedback by remember { mutableStateOf(false) }
+    var quickStats by remember { mutableStateOf("") }
+    var showQuickStats by remember { mutableStateOf(false) }
 
 
     // Fetch drill details and logs
@@ -931,30 +910,24 @@ fun FitnessDetailsScreen(
                 OutlinedButton(
                     onClick = {
                         val totalTimes = logs.mapNotNull { it["totalTime"] as? Double }
-                        coachFeedback = if (totalTimes.isNotEmpty()) {
+                        quickStats = if (totalTimes.isNotEmpty()) {
                             val avg = totalTimes.average()
                             val best = totalTimes.minOrNull()
                             val worst = totalTimes.maxOrNull()
                             buildString {
                                 append("🏃‍♂️ 5K Performance:\n")
-                                append("Avg Time: ${"%.2f".format(avg)} min\n")
-                                append("Best: ${"%.2f".format(best)} min, Worst: ${"%.2f".format(worst)} min\n")
-                                when {
-                                    avg <= 20 -> append("\n🏅 Tip: You're hitting elite times! Try interval training to boost your sprint finish.")
-                                    avg <= 25 -> append("\n💨 Tip: Great pace! Add hill runs or tempo runs to lower your average time.")
-                                    avg <= 30 -> append("\n🚶 Tip: You're doing well! Introduce longer runs and track your pace splits.")
-                                    else -> append("\n📈 Tip: Focus on consistency. Try a run/walk plan and gradually increase your pace.")
-                                }
+                                append("Average Time: ${"%.2f".format(avg)} min\n")
+                                append("Best: ${"%.2f".format(best)} min, Worst: ${"%.2f".format(worst)} min")
                             }
                         } else {
-                            "Not enough data to generate feedback yet."
+                            "Not enough data to show quick stats yet."
                         }
 
-                        showCoachFeedback = true
+                        showQuickStats = true
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Virtual Coach Feedback")
+                    Text("Quick Stats")
                 }
             }
         } else {
@@ -984,38 +957,32 @@ fun FitnessDetailsScreen(
                 OutlinedButton(
                     onClick = {
                         val rounds = logs.mapNotNull { it["roundsCompleted"] as? Long }
-                        coachFeedback = if (rounds.isNotEmpty()) {
+                        quickStats = if (rounds.isNotEmpty()) {
                             val avg = rounds.average()
                             val max = rounds.maxOrNull()
                             val min = rounds.minOrNull()
                             buildString {
                                 append("🌀 Rounds Completed:\n")
-                                append("Avg: ${"%.1f".format(avg)}, Best: $max, Lowest: $min\n")
-                                when {
-                                    avg >= 12 -> append("\n💡 Tip: Try shortening rest times or increase your speed to increase intensity.")
-                                    avg >= 8 -> append("\n🔥 Tip: Solid effort! Now focus on reducing rest time between rounds.")
-                                    avg >= 4 -> append("\n⚙️ Tip: Build up with consistent effort. Add 1–2 rounds weekly.")
-                                    else -> append("\n🔁 Tip: Start small and stay consistent. Even short workouts help build a habit.")
-                                }
+                                append("Average: ${"%.1f".format(avg)}, Best: $max, Lowest: $min")
                             }
                         } else {
-                            "Not enough data to generate feedback yet."
+                            "Not enough data to show quick stats yet."
                         }
 
-                        showCoachFeedback = true
+                        showQuickStats = true
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Virtual Coach")
+                    Text("Quick Stats")
                 }
             }
         }
 
 
         Spacer(modifier = Modifier.height(16.dp))
-        if (showCoachFeedback && coachFeedback.isNotEmpty()) {
+        if (showQuickStats && quickStats.isNotEmpty()) {
             Text(
-                text = coachFeedback,
+                text = quickStats,
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color(0xFF2E7D32),
                 modifier = Modifier
@@ -1066,7 +1033,7 @@ fun FitnessDetailsScreen(
 
                                 if (drillKey == "5k_run") {
                                     Text("Total Time: ${String.format("%.2f", totalTime)} min")
-                                    Text("Avg Time per KM: ${String.format("%.2f", avgTimePerKm)} min/km")
+                                    Text("Average Time per KM: ${String.format("%.2f", avgTimePerKm)} min/km")
                                 } else {
                                     Text("Rounds Completed: $rounds")
                                 }

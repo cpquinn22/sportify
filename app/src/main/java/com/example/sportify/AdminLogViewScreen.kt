@@ -33,6 +33,7 @@ fun AdminLogViewScreen(
     navController: NavHostController
 ) {
     val context = LocalContext.current
+    // collect list of workouts for team from ViewModel
     val workouts by viewModel.teamWorkouts.collectAsState(emptyList())
 
     LaunchedEffect(teamId) {
@@ -55,6 +56,7 @@ fun AdminLogViewScreen(
             workouts.forEach { (id, workout) ->
                 Button(
                     onClick = {
+                        // navigate to AdminLogDetail screen when a workout is selected
                         navController.navigate("adminLogDetail/$teamId/$id")
                     },
                     modifier = Modifier.fillMaxWidth()

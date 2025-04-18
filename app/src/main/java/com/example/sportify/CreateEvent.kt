@@ -34,6 +34,7 @@ fun CreateEventScreen(
     onEventCreated: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // hold input values for the event
     var eventName by remember { mutableStateOf("") }
     var eventInfo by remember { mutableStateOf("") }
     var eventLocation by remember { mutableStateOf("") }
@@ -88,11 +89,13 @@ fun CreateEventScreen(
 
         Button(
             onClick = {
+                // validate that all fields are filled in
                 if (eventName.isBlank() || eventInfo.isBlank() || eventLocation.isBlank() || eventDate.isBlank() || eventTime.isBlank()) {
                     Toast.makeText(context, "All fields are required", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
+                // prepare event data as a map to store in Firestore
                 val event = mapOf(
                     "name" to eventName,
                     "info" to eventInfo,
@@ -102,6 +105,7 @@ fun CreateEventScreen(
                     "timestamp" to System.currentTimeMillis()
                 )
 
+                // add event to Firestore collection under specified team
                 FirebaseFirestore.getInstance()
                     .collection("teams")
                     .document(teamId)

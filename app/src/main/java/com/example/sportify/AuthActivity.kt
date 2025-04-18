@@ -26,9 +26,11 @@ import kotlin.random.Random
 
 class AuthActivity : ComponentActivity() {
 
+    // launcher for Firebase Auth UI
     private val signInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        // check if sign in was successful
         if (result.resultCode == RESULT_OK) {
             val user = Firebase.auth.currentUser
             Log.d("AuthActivity", "✅ Sign-in successful: ${user?.email}")
@@ -46,15 +48,16 @@ class AuthActivity : ComponentActivity() {
         startFirebaseUI()
     }
 
+    // launch Firebaseui sign in screen
     private fun startFirebaseUI() {
         val providers = arrayListOf(
-            AuthUI.IdpConfig.EmailBuilder().build()
+            AuthUI.IdpConfig.EmailBuilder().build() // enable email sign in
         )
 
         val intent = AuthUI.getInstance()
             .createSignInIntentBuilder()
             .setAvailableProviders(providers)
-            .setIsSmartLockEnabled(false)
+            .setIsSmartLockEnabled(false) // disable smart lock for simplicity
             .build()
 
         signInLauncher.launch(intent)
@@ -78,9 +81,11 @@ class AuthActivity : ComponentActivity() {
             val email = firebaseUser.email ?: ""
             val name = firebaseUser.displayName ?: "Anonymous"
 
+            // check if user already exists in Firestore
             usersCollection.document(firebaseUid).get()
                 .addOnSuccessListener { documentSnapshot ->
                     if (!documentSnapshot.exists()) {
+                        // if user is new create a document for them
                         val userData = mapOf(
                             "authUid" to firebaseUid,
                             "name" to name,
@@ -99,7 +104,7 @@ class AuthActivity : ComponentActivity() {
                                 Log.e("Firestore", "❌ Failed to create user", e)
                             }
                     } else {
-                        // Optionally update their name if needed
+                        // if user already exists update their name if needed
                         val updatedData = mapOf("name" to name)
 
                         usersCollection.document(firebaseUid)

@@ -34,9 +34,13 @@ fun AdminLogDetailScreen(
     viewModel: TeamViewModel,
     onBack: () -> Unit = {}
 ) {
+    // holds workout details
     var workout by remember { mutableStateOf<Workout?>(null) }
+
+    // holds list of logs for that workout
     var logs by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
 
+    // fetch workout and logs
     LaunchedEffect(workoutId) {
         Log.d("AdminLogDetail", "Loading logs for team: $teamId, workout: $workoutId")
         workout = viewModel.loadWorkout(teamId, workoutId)
@@ -65,10 +69,12 @@ fun AdminLogDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("No logs found.")
             } else {
-                // 🔁 Group logs by userId
+                // group logs by userId
                 val logsByUser = logs.groupBy { it["userId"] ?: "unknownUser" }
 
+                // loop through each users logs
                 logsByUser.forEach { (userId, userLogs) ->
+                    // get user's name from the first log entry
                     val userName = userLogs.firstOrNull()?.get("userName") ?: "Unknown User"
 
                     Card(
@@ -86,12 +92,14 @@ fun AdminLogDetailScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
+                            // sort and display logs in reverse-chronological order
                             userLogs
                                 .sortedByDescending { it["timestamp"] }
                                 .forEachIndexed { index, log ->
                                     val date = log["date"] ?: "Unknown Date"
                                     Text("Log ${index + 1} — $date", fontWeight = FontWeight.Bold)
 
+                                    // loop through each step and show its recorded log entry
                                     workout!!.steps.forEach { (stepKey, stepLabel) ->
                                         val logType = workout!!.logTypes[stepKey] ?: "None"
                                         val entry = formatLogEntry(stepKey, stepLabel, logType, log)

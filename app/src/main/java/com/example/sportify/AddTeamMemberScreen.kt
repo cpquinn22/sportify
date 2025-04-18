@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 fun AddTeamMemberScreen(teamId: String, navController: NavHostController) {
     val context = LocalContext.current
     val adminViewModel: AdminViewModel = viewModel()
-    var emailInput by remember { mutableStateOf("") }
+    var emailInput by remember { mutableStateOf("") }   // holds email entered by user
 
     Column(
         modifier = Modifier
@@ -34,6 +34,7 @@ fun AddTeamMemberScreen(teamId: String, navController: NavHostController) {
 
         Button(
             onClick = {
+                // call ViewModel function to add user by email
                 adminViewModel.addUserToTeamByEmail(emailInput, teamId) { success, message ->
                     Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                     if (success) {

@@ -117,13 +117,9 @@ suspend fun generateCoachFeedbackWithInsights(
                     append("• Best: $best%, Worst: $worst%\n")
                     append(
                         when {
-                            avg >= 70 -> "🔥 You're shooting great, try adding in some shots from the dribble" +
-                                    "or from a pass"
-                            avg >= 50 -> "🎯 In the mid range you'll often be shooting over a defender," +
-                                    " so jump with control, not wild power."
-                            else -> "⛹️‍♂️ Keep your shooting motion the same every time, " +
-                                "use your legs to generate power and focus on a smooth, " +
-                        "one-motion shot."
+                            avg >= 70 -> "🔥 You're shooting great, try adding in some shots from the dribble or from a pass"
+                            avg >= 50 -> "🎯 In the mid range you'll often be shooting over a defender, so jump with control, not wild power."
+                            else -> "⛹️‍♂️ Keep your shooting motion the same every time, use your legs to generate power and focus on a smooth, one-motion shot."
                         }
                     )
                 }
@@ -168,7 +164,7 @@ suspend fun generateCoachFeedbackWithInsights(
                         }
                     )
                     append("💡 Tip: Take a big belly breath (diaphragmatic), then push out like you’re preparing for a gut punch." +
-                            "This will keep help support your body on the way up")
+                            "This will help support your body on the way up")
                 }
             }
 
@@ -188,8 +184,8 @@ suspend fun generateCoachFeedbackWithInsights(
                             avgWeight >= 100 -> "🔥 Strong legs! Now push depth and bracing under heavier load." +
                                     "Keep form consistent to avoid injury!!\n"
                             avgWeight >= 60 -> "👍 Getting stronger. Make sure knees track over toes and" +
-                                    "that your knees aren't buckling inwards.\n"
-                            else -> "📉 Try some bodyweight squats to find balance and proper stance.\n"
+                                    " that your knees aren't buckling inwards.\n"
+                            else -> "📉 Try some body weight squats to find balance and proper stance.\n"
                         }
                     )
                     append("💡 Tip: Drive through your heels and brace before every rep like you're about to get hit in the gut.")
@@ -215,8 +211,7 @@ suspend fun generateCoachFeedbackWithInsights(
                             else -> "🧱 Start with lightweight and get used to bar path and wrist stacking.\n"
                         }
                     )
-                    append("💡 Tip: Plant your feet firmly into the ground, a slight leg drive gives you full-body tension. " +
-                            "and think of breaking the bar as you press.")
+                    append("💡 Tip: Plant your feet firmly into the ground, a slight leg drive gives you full-body tension.")
                 }
             }
 

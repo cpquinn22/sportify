@@ -32,8 +32,8 @@ import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun CreateWorkoutScreen(
-    teamId: String,
-    viewModel: TeamViewModel,
+    teamId: String, // id of team workout is being created for
+    viewModel: TeamViewModel, // ViewModel to handle workout creation logiv
     onWorkoutCreated: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
@@ -46,7 +46,7 @@ fun CreateWorkoutScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .verticalScroll(scrollState), // 👈 Add this line
+            .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Create New Workout", style = MaterialTheme.typography.titleLarge)
@@ -65,8 +65,7 @@ fun CreateWorkoutScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        val scrollState = rememberScrollState()
-
+        // input fields for each step and its corresponding log type
         steps.forEachIndexed { index, step ->
             Column {
                 OutlinedTextField(
@@ -76,6 +75,7 @@ fun CreateWorkoutScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
+                // dropdown menu with selectable log types
                 var expanded by remember { mutableStateOf(false) }
                 val options = listOf("None", "Weight Training", "Running", "Shooting")
 
@@ -108,8 +108,11 @@ fun CreateWorkoutScreen(
 
         Button(
             onClick = {
+                // make sure all fields filled before saving
                 if (name.isNotBlank() && info.isNotBlank() && steps.all { it.isNotBlank() }) {
+                    // create IDs for each step (step_1, step_2)
                     val stepIds = steps.mapIndexed { i, _ -> "step_${i + 1}" }
+                    // build workout object with steps, log types and step order
                     val workout = Workout(
                         name = name,
                         info = info,

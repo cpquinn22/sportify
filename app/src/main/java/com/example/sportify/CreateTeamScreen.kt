@@ -84,8 +84,10 @@ fun CreateTeamScreen(navController: NavController, viewModel: TeamViewModel, use
         // Create Team Button
         Button(
             onClick = {
+                // only oroceed if both fields are filled
                 if (teamName.isNotBlank() && selectedSport.isNotBlank()) {
                     coroutineScope.launch {
+                        // attempt to create the team and get its Firestore ID
                         val teamId = viewModel.createTeam(teamName, selectedSport, userId)
                         if (teamId != null) {
                             navController.navigate("home") // Navigate back to HomeScreen
@@ -94,6 +96,7 @@ fun CreateTeamScreen(navController: NavController, viewModel: TeamViewModel, use
                 }
             },
             modifier = Modifier.fillMaxWidth(),
+            // disable button unless fields are filled in
             enabled = teamName.isNotBlank() && selectedSport.isNotBlank()
         ) {
             Text("Create Team")

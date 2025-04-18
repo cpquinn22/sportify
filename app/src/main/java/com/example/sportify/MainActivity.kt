@@ -444,9 +444,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            // ShootingDrillScreen
-            composable("shootingDrills") { ShootingDrillScreen(navController) }
-
             // DrillDetailsScreen
             composable("drillDetails/{drillKey}")
             { backStackEntry ->
