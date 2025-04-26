@@ -247,6 +247,7 @@ fun DrillDetailsScreen(
 
            Spacer(modifier = Modifier.width(8.dp))
 
+            // generate quick stats
             Button(
                 onClick = {
                     val shootingPercentages = logs.mapNotNull {
@@ -380,43 +381,6 @@ fun BasketballDrillScreen(navController: NavHostController) {
 
 
 @Composable
-fun ShootingDrillScreen(navController: NavHostController) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Button(
-            onClick = { navController.navigate("drill/3_point_shooting") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("3 Point Shooting")
-        }
-        Button(
-            onClick = { navController.navigate("drill/free_throw") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Free Throws")
-        }
-        Button(
-            onClick = { navController.navigate("drill/off_the_dribble_shots") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Off the Dribble Shots")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = { navController.navigate("details/Basketball") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Back to Basketball Drills")
-        }
-    }
-}
-
-@Composable
 fun TennisDrillScreen(navController: NavHostController) {
     val analytics = Firebase.analytics // Get Firebase Analytics instance
 
@@ -488,8 +452,9 @@ fun FootballDrillScreen(navController: NavHostController) {
 @Composable
 fun WeightTrainingScreen(
     navController: NavHostController,
-    drillsRepository: DrillsRepository
+    drillsRepository: DrillsRepository // repository to fetch weight training drills from firestore
 ) {
+    // holds list of available drills
     val exercises = remember { mutableStateOf<Map<String, Drill>>(emptyMap()) }
     val scope = rememberCoroutineScope()
 
@@ -515,13 +480,14 @@ fun WeightTrainingScreen(
         if (exercises.value.isEmpty()) {
             Text("No weight training drills available.")
         } else {
+            // loop through each available drill and create a button for it
             exercises.value.forEach { (key, drill) ->
                 Button(
                     onClick = { navController.navigate("weightTrainingDetails/$key") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp) // Adjust height for consistent button size
-                        .padding(horizontal = 0.dp) // Remove extra padding
+                        .height(48.dp)
+                        .padding(horizontal = 0.dp)
                 ) {
                     Text(
                         text = drill.name,
@@ -718,7 +684,7 @@ fun WeightTrainingDetailsScreen(
         } else {
             Column(modifier = Modifier.fillMaxWidth()) {
                 sortedGroupedLogs.forEach { (date, logsForDate) ->
-                    // Light Blue Date Header
+
                     Text(
                         text = date,
                         style = MaterialTheme.typography.titleMedium,
@@ -801,12 +767,14 @@ fun FitnessScreen(navController: NavHostController, drillsRepository: DrillsRepo
 fun FitnessDetailsScreen(
     navController: NavHostController,
     drillKey: String,
-    drillsRepository: DrillsRepository
+    drillsRepository: DrillsRepository // repository to fetch fitness drills
 ) {
+    // state to store drills data and user input
     var drillDetails by remember { mutableStateOf<Drill?>(null) }
     var minutesCompleted by remember { mutableStateOf("") }
     var roundsCompleted by remember { mutableStateOf("") }
     var logs = remember { mutableStateListOf<Map<String, Any>>() }
+    // automatically calculate average time per km
     val averageTimePerKm = remember(minutesCompleted) {
         calculateAverageTimePerKm(minutesCompleted)
     }
@@ -892,6 +860,7 @@ fun FitnessDetailsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // save 5k log to Firestore
                 Button(
                     onClick = {
                         if (minutesCompleted.isNotEmpty()) {
@@ -907,6 +876,7 @@ fun FitnessDetailsScreen(
                     Text("Log")
                 }
 
+                // generate quick stats
                 OutlinedButton(
                     onClick = {
                         val totalTimes = logs.mapNotNull { it["totalTime"] as? Double }
@@ -954,6 +924,7 @@ fun FitnessDetailsScreen(
                     Text("Log Rounds")
                 }
 
+                // generate quick stats
                 OutlinedButton(
                     onClick = {
                         val rounds = logs.mapNotNull { it["roundsCompleted"] as? Long }

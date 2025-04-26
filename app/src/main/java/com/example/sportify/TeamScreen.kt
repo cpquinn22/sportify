@@ -10,8 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
-
-
 @Composable
 fun TeamScreen(
     teamId: String,
@@ -22,6 +20,7 @@ fun TeamScreen(
     val teamDetails by viewModel.selectedTeam.collectAsState()
     val workouts by viewModel.teamWorkouts.collectAsState(emptyList())
 
+    // fetch teams details and workouts
     LaunchedEffect(teamId) {
         viewModel.loadTeamDetails(teamId)
         viewModel.fetchTeamWorkouts(teamId)
@@ -33,11 +32,13 @@ fun TeamScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // only show content if team details have been successfully loaded
         teamDetails?.let { team ->
             Text("Team: ${team.name}", style = MaterialTheme.typography.headlineMedium)
             Text("Sport: ${team.sport}")
             Spacer(modifier = Modifier.height(16.dp))
 
+            // show Coach Tools button only if user is team admin
             if (team.adminId == userId) {
                 Button(
                     onClick = { navController.navigate("adminTools/$teamId") },

@@ -61,7 +61,7 @@ import java.util.Calendar;
 // Data Model
 data class Sport(
     val name: String,
-    val imageResId: Int // For now, use local drawable resource IDs
+    val imageResId: Int
 )
 
 // ViewModel
@@ -86,11 +86,14 @@ class SportsViewModel : ViewModel() {
 
 private fun scheduleDailyWorkoutReminder(context: Context) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    // intent that triggers a broadcast to WorkoutReminderReceiver
     val intent = Intent(context, WorkoutReminderReceiver::class.java) // Ensure this matches your receiver class name
     val pendingIntent = PendingIntent.getBroadcast(
         context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
+    // set alart time to 3:00PM
     val calendar = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 15) // Set time for 3:00 PM
         set(Calendar.MINUTE, 0)
@@ -102,6 +105,7 @@ private fun scheduleDailyWorkoutReminder(context: Context) {
         calendar.add(Calendar.DAY_OF_YEAR, 1)
     }
 
+    // schedule repeating alarm daily
     alarmManager.setRepeating(
         AlarmManager.RTC_WAKEUP,
         calendar.timeInMillis,
@@ -171,9 +175,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Request notification permission (Required for Android 13+)
-     */
+
+     // Request notification permission (Required for Android 13+)
+
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= 33) { // API 33+ (Android 13+)
             val permission = "android.permission.POST_NOTIFICATIONS"
@@ -191,9 +195,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Subscribe to the "workout_reminders" topic
-     */
+     // subscribe to the "workout_reminders" topic
+
     private fun subscribeToWorkoutReminders() {
         FirebaseMessaging.getInstance().subscribeToTopic("workout_reminders")
             .addOnCompleteListener { task ->
@@ -205,9 +208,9 @@ class MainActivity : ComponentActivity() {
             }
     }
 
-    /**
-     * Retrieve and log the Firebase Cloud Messaging (FCM) token
-     */
+
+     // Retrieve and log the Firebase Cloud Messaging (FCM) token
+
     private fun retrieveFcmToken() {
         FirebaseMessaging.getInstance().token
             .addOnCompleteListener { task ->
@@ -247,186 +250,12 @@ class MainActivity : ComponentActivity() {
             }
             Log.d("UserCheck", "Current user UID: ${Firebase.auth.currentUser?.uid}")
 
-            // DrillActivity
+
+            // Drill-related navigation
             composable("details/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: "Unknown"
                 DrillActivity(navController, sportName, DrillsRepository())
             }
-
-            // Navigation to Specific Team
-            composable("team/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                val userId = FirebaseAuth.getInstance().currentUser?.uid
-                val viewModel: TeamViewModel = viewModel()
-
-                TeamScreen(
-                    teamId = teamId,
-                    userId = userId,
-                    navController = navController,
-                    viewModel = viewModel
-                )
-            }
-
-            // Create Workout
-            composable(
-                route = "createWorkout/{teamId}",
-                arguments = listOf(navArgument("teamId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                CreateWorkoutScreen(
-                    teamId = teamId,
-                    viewModel = viewModel(),
-                    onWorkoutCreated = { navController.popBackStack() }
-                )
-            }
-
-            // LogWorkoutScreen
-            composable(
-                route = "logWorkout/{teamId}/{workoutId}",
-                arguments = listOf(
-                    navArgument("teamId") { type = NavType.StringType },
-                    navArgument("workoutId") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: ""
-                val viewModel: TeamViewModel = viewModel()
-
-                LogWorkoutScreen(
-                    teamId = teamId,
-                    workoutId = workoutId,
-                    viewModel = viewModel,
-                    onLogSaved = {
-                        // Navigate back or show a success message
-                        navController.popBackStack()
-                    }
-                )
-            }
-
-            // LogViewerScreen
-            composable(
-                route = "logViewer/{teamId}/{workoutId}",
-                arguments = listOf(
-                    navArgument("teamId") { type = NavType.StringType },
-                    navArgument("workoutId") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: ""
-                LogViewerScreen(
-                    teamId = teamId,
-                    workoutId = workoutId,
-                    viewModel = viewModel() // or hiltViewModel() if using Hilt
-                )
-            }
-
-            // AdminWorkoutListScreen
-            composable("workoutList/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                val viewModel: TeamViewModel = viewModel()
-                val workouts = viewModel.teamWorkouts.collectAsState().value
-                AdminWorkoutListScreen(teamId, workouts, navController, viewModel)
-            }
-
-            // AdminLogViewScreen
-            composable("adminLogView/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
-                val viewModel: TeamViewModel = viewModel()
-
-                AdminLogViewScreen(
-                    teamId = teamId,
-                    viewModel = viewModel,
-                    navController = navController
-                )
-            }
-
-            // AdminLogDetailScreen
-            composable(
-                route = "adminLogDetail/{teamId}/{workoutId}",
-                arguments = listOf(
-                    navArgument("teamId") { type = NavType.StringType },
-                    navArgument("workoutId") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
-                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: return@composable
-                val viewModel: TeamViewModel = viewModel()
-
-                AdminLogDetailScreen(
-                    teamId = teamId,
-                    workoutId = workoutId,
-                    viewModel = viewModel
-                )
-            }
-
-            // AdminWorkoutListScreen
-            composable("adminWorkoutList/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
-                val viewModel: TeamViewModel = viewModel()
-                val workouts by viewModel.teamWorkouts.collectAsState(emptyList())
-
-                LaunchedEffect(teamId) {
-                    viewModel.fetchTeamWorkouts(teamId)
-                }
-
-                AdminWorkoutListScreen(
-                    teamId = teamId,
-                    workouts = workouts,
-                    navController = navController,
-                    viewModel = viewModel
-                )
-            }
-
-            // LeaderboardScreen
-            composable("leaderboard/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                val viewModel: TeamViewModel = viewModel()
-                LeaderboardScreen(
-                    teamId = teamId,
-                    viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
-                )
-            }
-
-            // VirtualCoachScreen
-            composable("virtualCoach") {
-                VirtualCoachScreen()
-            }
-
-            composable("createEvent/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                CreateEventScreen(
-                    teamId = teamId,
-                    onEventCreated = {
-                        // Navigate back after event is created
-                        navController.popBackStack()
-                    }
-                )
-            }
-
-            // UpcomingEventsScreen
-            composable("upcoming_events/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
-                UpcomingEventsScreen(teamId = teamId)
-            }
-
-            // AdminToolsScreen
-            composable("adminTools/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                AdminToolsScreen(teamId = teamId, navController = navController)
-            }
-
-            //AddTeamMemberScreen
-            composable("addMember/{teamId}") { backStackEntry ->
-                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
-                AddTeamMemberScreen(teamId = teamId, navController = navController)
-            }
-
-
-            // BasketballDrillScreen
-            composable("basketballDrills") { BasketballDrillScreen(navController) }
-
-            // DrillListScreen
             composable("drillsList/{sportName}") { backStackEntry ->
                 val sportName = backStackEntry.arguments?.getString("sportName") ?: ""
                 val drillsRepository = DrillsRepository()
@@ -443,8 +272,6 @@ class MainActivity : ComponentActivity() {
                     navController = navController
                 )
             }
-
-            // DrillDetailsScreen
             composable("drillDetails/{drillKey}")
             { backStackEntry ->
                 val drillKey = backStackEntry.arguments?.getString("drillKey") ?: "Unknown"
@@ -468,20 +295,179 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // TennisDrillScreen
+            // Workout related screens
+            composable(route = "createWorkout/{teamId}",
+                arguments = listOf(navArgument("teamId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                CreateWorkoutScreen(
+                    teamId = teamId,
+                    viewModel = viewModel(),
+                    onWorkoutCreated = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = "logWorkout/{teamId}/{workoutId}",
+                arguments = listOf(
+                    navArgument("teamId") { type = NavType.StringType },
+                    navArgument("workoutId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: ""
+                val viewModel: TeamViewModel = viewModel()
+
+                LogWorkoutScreen(
+                    teamId = teamId,
+                    workoutId = workoutId,
+                    viewModel = viewModel,
+                    onLogSaved = {
+                        // Navigate back or show a success message
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(route = "logViewer/{teamId}/{workoutId}",
+                arguments = listOf(
+                    navArgument("teamId") { type = NavType.StringType },
+                    navArgument("workoutId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: ""
+                LogViewerScreen(
+                    teamId = teamId,
+                    workoutId = workoutId,
+                    viewModel = viewModel() // or hiltViewModel() if using Hilt
+                )
+            }
+
+            // Admin tools
+            composable("adminTools/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                AdminToolsScreen(teamId = teamId, navController = navController)
+            }
+
+            composable("workoutList/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                val viewModel: TeamViewModel = viewModel()
+                val workouts = viewModel.teamWorkouts.collectAsState().value
+                AdminWorkoutListScreen(teamId, workouts, navController, viewModel)
+            }
+            composable("team/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                val viewModel: TeamViewModel = viewModel()
+
+                TeamScreen(
+                    teamId = teamId,
+                    userId = userId,
+                    navController = navController,
+                    viewModel = viewModel
+                )
+            }
+
+            composable("adminLogView/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
+                val viewModel: TeamViewModel = viewModel()
+
+                AdminLogViewScreen(
+                    teamId = teamId,
+                    viewModel = viewModel,
+                    navController = navController
+                )
+            }
+
+            composable(route = "adminLogDetail/{teamId}/{workoutId}",
+                arguments = listOf(
+                    navArgument("teamId") { type = NavType.StringType },
+                    navArgument("workoutId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
+                val workoutId = backStackEntry.arguments?.getString("workoutId") ?: return@composable
+                val viewModel: TeamViewModel = viewModel()
+
+                AdminLogDetailScreen(
+                    teamId = teamId,
+                    workoutId = workoutId,
+                    viewModel = viewModel
+                )
+            }
+
+            composable("adminWorkoutList/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
+                val viewModel: TeamViewModel = viewModel()
+                val workouts by viewModel.teamWorkouts.collectAsState(emptyList())
+
+                LaunchedEffect(teamId) {
+                    viewModel.fetchTeamWorkouts(teamId)
+                }
+
+                AdminWorkoutListScreen(
+                    teamId = teamId,
+                    workouts = workouts,
+                    navController = navController,
+                    viewModel = viewModel
+                )
+            }
+
+            // Misc
+            composable("leaderboard/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                val viewModel: TeamViewModel = viewModel()
+                LeaderboardScreen(
+                    teamId = teamId,
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("virtualCoach") {
+                VirtualCoachScreen()
+            }
+
+            composable("addMember/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                AddTeamMemberScreen(teamId = teamId, navController = navController)
+            }
+
+            // Events
+            composable("createEvent/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: ""
+                CreateEventScreen(
+                    teamId = teamId,
+                    onEventCreated = {
+                        // Navigate back after event is created
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable("upcoming_events/{teamId}") { backStackEntry ->
+                val teamId = backStackEntry.arguments?.getString("teamId") ?: return@composable
+                UpcomingEventsScreen(teamId = teamId)
+            }
+
+
+
+            // Sport screens
+            composable("basketballDrills") { BasketballDrillScreen(navController) }
+
             composable("tennisDrills") { TennisDrillScreen(navController) }
 
-            //FootballDrillScreen
             composable("footballDrills") { FootballDrillScreen(navController) }
 
-            // WeightTrainingScreen
+            // Weight Training and Fitness
             composable("weightTraining") {
                 WeightTrainingScreen(
                     navController = navController,
                     drillsRepository = DrillsRepository()
                 )
             }
-            // WeightTrainingDetailsScreen
+
             composable("weightTrainingDetails/{exerciseKey}") { backStackEntry ->
                 val exerciseKey = backStackEntry.arguments?.getString("exerciseKey") ?: ""
                 WeightTrainingDetailsScreen(
@@ -491,12 +477,10 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            // FitnessScreen
             composable("fitness") {
                 FitnessScreen(navController = navController, drillsRepository = DrillsRepository())
             }
 
-            // FitnessDetailsScreen
             composable("fitnessDetails/{drillKey}") { backStackEntry ->
                 val drillKey = backStackEntry.arguments?.getString("drillKey") ?: ""
                 FitnessDetailsScreen(

@@ -27,12 +27,14 @@ fun UpcomingEventsScreen(teamId: String) {
     val db = FirebaseFirestore.getInstance()
     var events by remember { mutableStateOf<List<TeamEvent>>(emptyList()) }
 
+    // fetch events from Firestore
     LaunchedEffect(teamId) {
         db.collection("teams")
             .document(teamId)
             .collection("events")
             .get()
             .addOnSuccessListener { result ->
+                // convert Firestore documents to TeamEvent objects
                 events = result.documents.mapNotNull { it.toObject(TeamEvent::class.java) }
             }
     }

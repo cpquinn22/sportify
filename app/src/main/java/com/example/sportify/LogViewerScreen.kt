@@ -74,13 +74,17 @@ fun formatLogEntry(
 fun LogViewerScreen(
     teamId: String,
     workoutId: String,
-    viewModel: TeamViewModel
+    viewModel: TeamViewModel // ViewModel used to fetch logs and workout data
 ) {
+    // holds workout metadata
     var workout by remember { mutableStateOf<Workout?>(null) }
+
+    // list of logs submitted by the current user
     var logs by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
 
     val currentUserId = Firebase.auth.currentUser?.uid
 
+    // load workout details and filter logs to only those created by current user
     LaunchedEffect(workoutId) {
         workout = viewModel.loadWorkout(teamId, workoutId)
         val allLogs = viewModel.loadWorkoutLogs(teamId, workoutId)
@@ -104,7 +108,9 @@ fun LogViewerScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text("No logs found.")
         } else {
+            // group logs by date and display each entry inside a styled card
             logs
+                // most recent log first
                 .sortedByDescending { it["timestamp"] }
                 .groupBy { it["date"] ?: "Unknown Date" }
                 .forEach { (date, logsForDate) ->
@@ -122,6 +128,7 @@ fun LogViewerScreen(
                                     style = MaterialTheme.typography.titleMedium
                                 )
 
+                                // loop through step and display results for each
                                 workout!!.steps.forEach { (stepKey, stepLabel) ->
                                     val logType = workout!!.logTypes[stepKey] ?: "None"
                                     val line = formatLogEntry(stepKey, stepLabel, logType, log)

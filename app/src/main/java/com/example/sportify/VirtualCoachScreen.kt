@@ -38,6 +38,7 @@ import com.google.firebase.firestore.Query
 import data.DrillsRepository
 import kotlinx.coroutines.tasks.await
 
+// generates performance feedback based on selected drill and user's log data
 suspend fun generateCoachFeedbackWithInsights(
     selectedDrill: String,
     userId: String
@@ -73,6 +74,7 @@ suspend fun generateCoachFeedbackWithInsights(
         .collection("logs_$drillKey")
 
     return try {
+        // get all logs for this drill submitted by this user
         val snapshot = logsRef
             .whereEqualTo("userId", userId)
             .get()
@@ -84,7 +86,7 @@ suspend fun generateCoachFeedbackWithInsights(
             return "No performance data found for $selectedDrill yet."
         }
 
-        // Basic performance insights by drill
+        // performance insights by drill
         when (selectedDrill) {
             "3 Point Shooting" -> {
                 val percentages = logs.mapNotNull { it["shootingPercentage"] as? Long }
@@ -277,54 +279,6 @@ fun VirtualCoachScreen() {
         "💪 Fitness" to listOf("5K Run", "Interval Sprints", "Skipping")
     )
 
-    val drillTips = mapOf(
-        "3 Point Shooting" to listOf(
-            "🏀 Focus on quick release and consistent arc.",
-            "📍 Practice from different spots around the arc.",
-            "⛹️‍♂️ Shoot off the catch and off the dribble."
-        ),
-        "Free Throw" to listOf(
-            "🎯 Use the same pre-shot routine each time.",
-            "🙌 Focus on your follow-through.",
-            "🦶 Keep feet shoulder-width apart and square to the rim."
-        ),
-        "Mid Range Shooting" to listOf(
-            "💨 Practice quick stops off the dribble.",
-            "🌀 Combine footwork with shot mechanics.",
-            "🧱 Work on elevation with control."
-        ),
-        "Deadlift" to listOf(
-            "🔒 Keep your back straight, hinge at the hips.",
-            "🧠 Brace your core and engage your lats.",
-            "🧱 Lift with control and avoid jerking the bar."
-        ),
-        "Squat" to listOf(
-            "🦵 Push through heels, chest up.",
-            "🏋️ Experiment with stance for balance and depth.",
-            "📏 Brace your core before each rep."
-        ),
-        "Bench Press" to listOf(
-            "📐 Slight arch in your lower back for stability.",
-            "🦶 Strong leg drive helps full-body tension.",
-            "🔥 Warm up triceps and shoulders properly."
-        ),
-        "5K Run" to listOf(
-            "🏃 Use tempo and interval training to improve pace.",
-            "📏 Track average pace per KM.",
-            "🕒 Focus on even pacing instead of fast starts."
-        ),
-        "Skipping" to listOf(
-            "🔁 Keep elbows in and wrists relaxed.",
-            "⛹️‍♀️ Jump just enough to clear the rope.",
-            "⏱️ Alternate high and low intensity intervals."
-        ),
-        "Interval Sprints" to listOf(
-            "⚡ Sprint at 80–90% effort, rest 2x your sprint time.",
-            "🚦 Use cones or distance markers for consistency.",
-            "🌀 Improve explosiveness with plyometrics."
-        )
-    )
-
     // Fetch user name on load
     LaunchedEffect(Unit) {
         if (userId.isNotEmpty()) {
@@ -344,7 +298,6 @@ fun VirtualCoachScreen() {
         }
     }
 
-    val tips = drillTips[selectedDrill.value] ?: emptyList()
 
     Column(
         modifier = Modifier

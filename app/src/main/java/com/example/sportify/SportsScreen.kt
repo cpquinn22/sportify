@@ -31,7 +31,7 @@ import androidx.navigation.NavHostController
 
 @Composable
 fun SportsScreen(navController: NavHostController, viewModel: SportsViewModel = viewModel()) {
-    val sports by viewModel.sports.collectAsState()
+    val sports by viewModel.sports.collectAsState() // observe list of sports from the ViewModel
 
     Column(
         modifier = Modifier
@@ -40,6 +40,7 @@ fun SportsScreen(navController: NavHostController, viewModel: SportsViewModel = 
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // render a card for each sport
         sports.forEach { sport ->
             SportCard(sport) {
                 navController.navigate("details/${sport.name}") {

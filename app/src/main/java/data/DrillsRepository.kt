@@ -18,6 +18,7 @@ data class Drill(
     val steps: Map<String, String> = emptyMap()
 )
 
+// repository to handle fetching and logging drill-related data from firestore
 class DrillsRepository {
     private val firestore = FirebaseFirestore.getInstance()
     val drillsCollection = firestore.collection("drills")
@@ -43,6 +44,7 @@ class DrillsRepository {
         }
     }
 
+    // add a shooting log to firestore
     fun addLogToFirestore(
         sportName: String,
         drillName: String,
@@ -69,7 +71,7 @@ class DrillsRepository {
 
     suspend fun getLogsByDrill(sportName: String, drillName: String): List<Map<String, Any>> {
         return try {
-
+            // normalise drill name if needed
             val normalizedDrillName = when (sportName) {
                 "Basketball" -> drillName
                 "WeightTraining" -> drillName.lowercase()
@@ -98,6 +100,7 @@ class DrillsRepository {
         }
     }
 
+    // changes Firestore timestamp to readable date string
     fun formatTimestampToDateString(timestamp: Any?): String {
         return if (timestamp is Timestamp) {
             val date = timestamp.toDate()
@@ -219,6 +222,7 @@ class DrillsRepository {
             }
     }
 
+    // real-time listener that updates the passed state list with current user's log
     fun addLogsSnapshotListener(
         drillKey: String,
         logs: SnapshotStateList<Map<String, Any>>,
@@ -232,6 +236,7 @@ class DrillsRepository {
             .document(sport)
             .collection("logs_${drillKey.lowercase()}")
 
+        // listen for real-time updates to the user's logs
         logsCollection
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, e ->
@@ -243,6 +248,7 @@ class DrillsRepository {
                 if (snapshot != null && !snapshot.isEmpty) {
                     logs.clear()
 
+                    // filter to include only the current user's logs
                     val filteredLogs = snapshot.documents.mapNotNull { doc ->
                         val data = doc.data
                         if (data != null && data["userId"] == currentUserId) {

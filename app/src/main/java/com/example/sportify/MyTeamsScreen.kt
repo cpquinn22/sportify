@@ -29,7 +29,7 @@ fun MyTeamsScreen(viewModel: TeamViewModel, userId: String, navController: NavHo
     val userId = Firebase.auth.currentUser?.uid
 
 
-    // Load user's teams when screen loads
+    // fetch user's teams when screen loads
     LaunchedEffect(userId) {
         if (userId != null) {
             viewModel.fetchUserTeams(userId)
@@ -45,11 +45,13 @@ fun MyTeamsScreen(viewModel: TeamViewModel, userId: String, navController: NavHo
     ) {
         Text("My Teams", style = MaterialTheme.typography.titleLarge)
 
+        // re-collect team map to ensure its always updated
         val teamMap by viewModel.userTeams.collectAsState()
 
         if (teamMap.isEmpty()) {
             Text("You are not part of any teams.")
         } else {
+            // loop through each team and display a button for it
             teamMap.forEach { (teamId, teamName) ->
                 Button(
                     onClick = {

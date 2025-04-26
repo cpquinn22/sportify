@@ -33,10 +33,13 @@ fun LeaderboardScreen(
     viewModel: TeamViewModel,
     onBack: () -> Unit
 ) {
+    // collect leaderboard data from the ViewModel
     val leaderboardEntries by viewModel.leaderboardEntries.collectAsState()
 
     val filterOptions = listOf("Most Active", "Top Runner", "Top Shooter", "Top Lifter")
+    // currently selected filter
     var currentFilter by remember { mutableStateOf(filterOptions.first()) }
+    // reload leaderboard data when filter changes
     LaunchedEffect(currentFilter) {
         viewModel.loadLeaderboard(teamId, currentFilter)
     }
@@ -70,6 +73,7 @@ fun LeaderboardScreen(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
+                // list each filter option in dropdown
                 filterOptions.forEach { filter ->
                     DropdownMenuItem(
                         text = { Text(filter) },
@@ -101,6 +105,7 @@ fun LeaderboardScreen(
                             text = "#${index + 1}: ${entry.userName}",
                             style = MaterialTheme.typography.titleMedium
                         )
+                        // dynamically label the score based on filter
                         val scoreLabel = when (currentFilter) {
                             "Most Active" -> "${entry.statValue.toInt()} logs"
                             "Top Runner" -> "${"%.2f".format(entry.statValue)} km"
@@ -108,7 +113,7 @@ fun LeaderboardScreen(
                             "Top Lifter" -> "${entry.statValue.toInt()} kg"
                             else -> "${entry.statValue}"
                         }
-
+                        // show formatted score
                         Text(text = "Score: $scoreLabel")
                     }
                 }

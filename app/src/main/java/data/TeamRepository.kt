@@ -13,7 +13,9 @@ class TeamRepository {
     private val teamsCollection = firestore.collection("teams")
     private val usersCollection = firestore.collection("users")
     private val sportsCollection = firestore.collection("sports")
-    // Create a new team
+
+
+    // Create a new team and assign the creating user as admin
     suspend fun createTeam(teamName: String, sport: String, userId: String): String? {
         val teamId = teamsCollection.document().id
         val teamCode = generateUniqueTeamCode()
@@ -27,37 +29,13 @@ class TeamRepository {
         )
 
         return try {
+            // save team in firestore
             teamsCollection.document(teamId).set(teamData).await()
+            // update users document to include new team
             updateUserWithNewTeam(userId, teamId, isAdmin = true)
             teamId
         } catch (e: Exception) {
             null
-        }
-    }
-
-    // Join an existing team by its unique code
-    suspend fun joinTeam(userId: String, teamCode: String): Boolean {
-        return try {
-            val querySnapshot = teamsCollection
-                .whereEqualTo("teamCode", teamCode)
-                .get()
-                .await()
-
-            if (!querySnapshot.isEmpty) {
-                val teamDoc = querySnapshot.documents.first()
-                val teamId = teamDoc.id
-
-                teamsCollection.document(teamId)
-                    .update("members", FieldValue.arrayUnion(userId))
-                    .await()
-
-                updateUserWithNewTeam(userId, teamId, isAdmin = false)
-                true
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            false
         }
     }
 
@@ -113,6 +91,7 @@ class TeamRepository {
             val userDoc = userRef.get().await()
             Log.d("FirestoreDebug", "📄 User document fetched: ${userDoc.data}")
 
+            // fetch current teams and adminTeams
             val userTeams = (userDoc.get("teams") as? List<String>)?.toMutableList() ?: mutableListOf()
             val adminTeams = (userDoc.get("adminTeams") as? List<String>)?.toMutableList() ?: mutableListOf()
 
@@ -133,23 +112,12 @@ class TeamRepository {
             }
             Log.d("FirestoreDebug", "📦 Prepared update payload: $updates")
 
+            // commit changes to Firestore
             userRef.update(updates).await()
             Log.d("FirestoreDebug", "✅ User document updated successfully!")
         } catch (e: Exception) {
             Log.e("FirestoreDebug", "❌ Error updating user document", e)
             e.printStackTrace()
-        }
-    }
-
-    suspend fun getUserDocIdByUid(uid: String?): String? {
-        if (uid.isNullOrBlank()) return null
-
-        return try {
-            val snapshot = usersCollection.whereEqualTo("uid", uid).get().await()
-            snapshot.documents.firstOrNull()?.id
-        } catch (e: Exception) {
-            Log.e("FirestoreDebug", "❌ Failed to query user by UID: $uid", e)
-            null
         }
     }
 
@@ -168,35 +136,6 @@ class TeamRepository {
             Log.e("TeamDebug", "❌ Error fetching team: $e")
             null
         }
-    }
-
-    suspend fun getTeamIdByName(name: String): String? {
-        return try {
-            val snapshot = FirebaseFirestore.getInstance()
-                .collection("teams")
-                .whereEqualTo("name", name)
-                .get()
-                .await()
-            snapshot.documents.firstOrNull()?.id
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    suspend fun saveWorkout(teamId: String, workout: Workout) {
-        val db = FirebaseFirestore.getInstance()
-        val workoutRef = db.collection("teams")
-            .document(teamId)
-            .collection("workouts")
-            .document()
-
-        val workoutMap = mapOf(
-            "name" to workout.name,
-            "info" to workout.info,
-            "steps" to workout.steps
-        )
-
-        workoutRef.set(workoutMap).await()
     }
 
     // Generate a random unique team code

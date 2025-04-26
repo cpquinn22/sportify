@@ -19,15 +19,19 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
 class FCMService : FirebaseMessagingService() {
+
+    // called when a push notification is received while the app is in the foreground or background
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
         val title = remoteMessage.notification?.title ?: remoteMessage.data["title"] ?: "Workout Reminder"
         val message = remoteMessage.notification?.body ?: remoteMessage.data["body"] ?: "Time to log a workout!"
 
+        // trigger displaying a local notification
         sendNotification(title, message)
     }
 
+    // called whenever a new FCM token is generated (app reinstall, token refresh)
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "New token: $token")
@@ -46,10 +50,11 @@ class FCMService : FirebaseMessagingService() {
         }
     }
 
-
+    // displays local notification on device
     private fun sendNotification(title: String, message: String) {
         val channelId = "workout_reminder_channel"
 
+        // open MainActivity when notification is tapped
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -66,7 +71,7 @@ class FCMService : FirebaseMessagingService() {
             }
         }
 
-        // Create Notification Channel
+        // Create Notification Channel for Android 8+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,

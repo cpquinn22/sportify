@@ -39,25 +39,30 @@ import com.google.firebase.functions.FirebaseFunctions
 
 class TeamViewModel : ViewModel() {
 
-    private val repository = TeamRepository() // No need for factory!
+    // repository that handles Firestore interactions
+    private val repository = TeamRepository()
 
+    // stores user's team IDs mapped to team names
     private val _userTeams = MutableStateFlow<Map<String, String>>(emptyMap())
     val userTeams: StateFlow<Map<String, String>> = _userTeams
 
+    // stores details of the currently selected team
     private val _selectedTeam = MutableStateFlow<Team?>(null)
     val selectedTeam: StateFlow<Team?> = _selectedTeam
 
+    // stores leaderboard results
     private val _leaderboardEntries = MutableStateFlow<List<LeaderboardEntry>>(emptyList())
     val leaderboardEntries: StateFlow<List<LeaderboardEntry>> = _leaderboardEntries
 
 
-
+    // creates a new team using the repository
     fun createTeam(teamName: String, selectedSport: String, userId: String) {
         viewModelScope.launch {
             repository.createTeam(teamName, selectedSport, userId)
         }
     }
 
+    // loads team object from Firestore using team ID
     fun loadTeamDetails(teamId: String) {
         viewModelScope.launch {
             Log.d("TeamDebug", "🔍 Loading team details for ID: $teamId")
@@ -67,6 +72,7 @@ class TeamViewModel : ViewModel() {
         }
     }
 
+    // loads all team IDs the user is part of an fetches their names
     fun fetchUserTeams(firebaseUid: String?) {
         viewModelScope.launch {
             val userDocId = firebaseUid
@@ -89,6 +95,7 @@ class TeamViewModel : ViewModel() {
         }
     }
 
+    // admin check
     private val _isAdmin = MutableStateFlow(false)
     val isAdmin: StateFlow<Boolean> = _isAdmin
 
@@ -99,10 +106,12 @@ class TeamViewModel : ViewModel() {
         }
     }
 
+    // get available sport types
     suspend fun getSportsList(): List<String> {
         return repository.getSportsList()
     }
 
+    // saves workout to Firestore and triggers notification cloud function
     fun saveWorkoutToFirestore(teamId: String, workout: Workout) {
         val db = FirebaseFirestore.getInstance()
         val workoutRef = db.collection("teams")
@@ -112,6 +121,7 @@ class TeamViewModel : ViewModel() {
 
         workoutRef.set(workout)
             .addOnSuccessListener {
+                // payload for the notification cloud function
                 Log.d("WorkoutSave", "Workout saved successfully!")
 
                 Log.d("FCM", "Sending teamId: $teamId")
@@ -139,50 +149,8 @@ class TeamViewModel : ViewModel() {
             }
     }
 
-    fun sendNotificationToToken(token: String, workoutName: String) {
-        try {
-            val credentials = GoogleCredentials.fromStream(
-                FileInputStream(File("app", "sportify-11df1-firebase-adminsdk-u0gjb-80a37a7c71.json"))
-            )
-            val accessToken = credentials.refreshAccessToken().tokenValue
-            val client = OkHttpClient()
 
-            val json = """
-        {
-            "to": "$token",
-            "notification": {
-                "title": "New Workout Available!",
-                "body": "A new workout \"$workoutName\" was added to your team."
-            }
-        }
-        """.trimIndent()
-
-            Log.d("FCM", "📨 Preparing to send notification. JSON: $json")
-
-            val requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
-            val request = Request.Builder()
-                .url("https://fcm.googleapis.com/fcm/send")
-                .addHeader("Authorization", "Bearer $accessToken")
-                .post(requestBody)
-                .build()
-
-            client.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    Log.e("FCM", "❌ Notification failed to send: ${e.message}", e)
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    val body = response.body?.string()
-                    Log.d("FCM", "✅ Notification sent successfully. Response: $body")
-                }
-            })
-
-        } catch (e: Exception) {
-            Log.e("FCM", "❌ Error sending push notification: ${e.message}", e)
-        }
-    }
-
-
+    // load a specific workout for logging
     suspend fun loadWorkout(teamId: String, workoutId: String): Workout? {
         return try {
             val doc = Firebase.firestore
@@ -200,6 +168,7 @@ class TeamViewModel : ViewModel() {
         }
     }
 
+    // saves a log entry
     fun saveWorkoutLog(
         teamId: String,
         workoutId: String,
@@ -224,9 +193,11 @@ class TeamViewModel : ViewModel() {
     }
 
 
+    // stores a lost of all workouts for a team
     private val _teamWorkouts = MutableStateFlow<List<Pair<String, Workout>>>(emptyList())
     val teamWorkouts: StateFlow<List<Pair<String, Workout>>> = _teamWorkouts
 
+    // fetches all workouts for a team
     fun fetchTeamWorkouts(teamId: String) {
         Firebase.firestore.collection("teams")
             .document(teamId)
@@ -247,6 +218,7 @@ class TeamViewModel : ViewModel() {
             }
     }
 
+    // load all workout logs for current user in a specific workout
     suspend fun loadWorkoutLogs(teamId: String, workoutId: String): List<Map<String, String>> {
         return try {
             val userId = Firebase.auth.currentUser?.uid ?: return emptyList()
@@ -268,6 +240,7 @@ class TeamViewModel : ViewModel() {
         }
     }
 
+    // admin version of loading logs: loads all logs from all users
     suspend fun loadAllLogsForWorkout(teamId: String, workoutId: String): List<Map<String, String>> {
         return try {
             val snapshot = Firebase.firestore
@@ -288,6 +261,7 @@ class TeamViewModel : ViewModel() {
         }
     }
 
+    // load and display leaderboard based on selected filter
     fun loadLeaderboard(teamId: String, filter: String) {
         viewModelScope.launch {
             val logs = loadAllLogsAcrossUsers(teamId)
@@ -296,6 +270,7 @@ class TeamViewModel : ViewModel() {
         }
     }
 
+    // load all logs from all workouts for a team
     suspend fun loadAllLogsAcrossUsers(teamId: String): List<Map<String, String>> {
         val firestore = Firebase.firestore
         val logs = mutableListOf<Map<String, String>>()
@@ -324,6 +299,8 @@ class TeamViewModel : ViewModel() {
 
         return logs
     }
+
+    // transforms logs into leaderboard entries based on selected metric
     fun processLogsForLeaderboard(
         logs: List<Map<String, String>>,
         metric: String

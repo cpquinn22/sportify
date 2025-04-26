@@ -43,12 +43,16 @@ fun LogWorkoutScreen(
     onLogSaved: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    // holds loaded workout
     var workout by remember { mutableStateOf<Workout?>(null) }
+    // map that holds the users responses
     val responses = remember { mutableStateMapOf<String, String>() }
 
+    // load workout and prepare response fields based on log type
     LaunchedEffect(workoutId) {
         val loadedWorkout = viewModel.loadWorkout(teamId, workoutId)
         workout = loadedWorkout
+        // initialize expected log fields based on log type
         loadedWorkout?.stepOrder?.forEach { stepKey ->
             when (loadedWorkout.logTypes[stepKey]) {
                 "Weight Training" -> {
@@ -84,6 +88,7 @@ fun LogWorkoutScreen(
 
             Spacer(Modifier.height(12.dp))
 
+            // loop through each step and show appropriate input fields
             workout!!.stepOrder.forEach { stepKey ->
                 val stepLabel = workout!!.steps[stepKey] ?: return@forEach
                 val logType = workout!!.logTypes[stepKey] ?: "None"
@@ -95,7 +100,7 @@ fun LogWorkoutScreen(
                             OutlinedTextField(
                                 value = responses[key] ?: "",
                                 onValueChange = { input ->
-                                    responses[key] = input.filter { it.isDigit() }
+                                    responses[key] = input.filter { it.isDigit() } // only allow numbers
                                 },
                                 label = { Text("$stepLabel - $field") },
                                 modifier = Modifier.fillMaxWidth(),
@@ -111,7 +116,7 @@ fun LogWorkoutScreen(
                         OutlinedTextField(
                             value = responses[distKey] ?: "",
                             onValueChange = { input ->
-                                responses[distKey] = input.filter { it.isDigit() || it == '.' }
+                                responses[distKey] = input.filter { it.isDigit() || it == '.' } // allow decimals
                             },
                             label = { Text("Distance (km)") },
                             modifier = Modifier.fillMaxWidth(),
@@ -127,6 +132,7 @@ fun LogWorkoutScreen(
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                         )
 
+                        // automatically calculate and show pace
                         val distance = responses[distKey]?.toFloatOrNull()
                         val time = responses[timeKey]?.toFloatOrNull()
                         if (distance != null && time != null && distance > 0) {
@@ -156,27 +162,30 @@ fun LogWorkoutScreen(
                     }
 
                     else -> {
-                        // No log fields for this step
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
+            // submit button to log workout
             Button(
                 onClick = {
+                    // validate all fields are filled
                     val hasEmptyField = responses.values.any { it.isBlank() }
                     if (hasEmptyField) {
                         Toast.makeText(context, "Please fill in all fields before submitting.", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
+                    // validate all values are numeric
                     val nonNumeric = responses.any { (_, value) -> value.toFloatOrNull() == null }
                     if (nonNumeric) {
                         Toast.makeText(context, "Please enter numbers only in all fields.", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
+                    // create timestamp and user info
                     val formatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
                     val currentDate = formatter.format(Date())
 
@@ -184,6 +193,7 @@ fun LogWorkoutScreen(
                     val userId = user?.uid ?: "unknown"
                     val userName = user?.displayName ?: "unknown"
 
+                    // add meta data to the log
                     val logDataWithDate = responses.toMutableMap().apply {
                         put("date", currentDate)
                         put("timestamp", System.currentTimeMillis().toString())
@@ -191,6 +201,7 @@ fun LogWorkoutScreen(
                         put("userName", userName)
                     }
 
+                    // save log to firestore using the ViewModel
                     viewModel.saveWorkoutLog(
                         teamId,
                         workoutId,

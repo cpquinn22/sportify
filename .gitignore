@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Secrets
+*firebase-adminsdk*.json
+serviceAccount*.json
+*.keystore
+local.properties
