@@ -19,3 +19,9 @@ local.properties
 serviceAccount*.json
 *.keystore
 local.properties
+
+# Secrets
+*firebase-adminsdk*.json
+serviceAccount*.json
+*.keystore
+local.properties
